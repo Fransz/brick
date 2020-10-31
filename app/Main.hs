@@ -1,5 +1,3 @@
-{-# LANGUAGE PartialTypeSignatures #-}
-
 module Main where
 
 import qualified Brick.AttrMap as BA
