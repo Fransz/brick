@@ -35,10 +35,12 @@ ui :: State -> [Widget GRID_NAME]
 ui s = [borderWithLabel (str "snake") $ snakeUi s <+> scoreUi s ]
 
 snakeUi :: State -> Widget GRID_NAME
-snakeUi s = padLeft (Pad 1) $ padTopBottom 1 $ border $ vBox $ map hBox ws
+snakeUi s = pad $ vBox $ map hBox wids
   where
+    pad w = padLeft (Pad 1) $ padTopBottom 1 $ border w
+
     rs = [ 0 .. rows s - 1]
-    ws = map (\y -> [ draw (V2 x y)  | x <- [0 .. cols s -1] ]) rs
+    wids = map (\y -> [ draw (V2 x y)  | x <- [0 .. cols s -1] ]) rs
     draw = wid . isCell
 
     isCell :: Pos -> Cell
@@ -54,7 +56,10 @@ snakeUi s = padLeft (Pad 1) $ padTopBottom 1 $ border $ vBox $ map hBox ws
       GridCell -> withAttr (attrName "grid") $ str "  "
 
 scoreUi :: State -> Widget GRID_NAME
-scoreUi s = padLeft (Pad 10) $ padAll 1 $ vLimit 10 $ borderWithLabel (str "score") (fill ' ')
+scoreUi s = pad $ score <=> fill ' '
+    where 
+      pad w = padLeft (Pad 10) $ padAll 1 $ vLimit 10 $ borderWithLabel (str "score") $ padAll 1 w
+      score = str $ "score: " ++ show (counter s)
 
 initialState :: State
 initialState = State 50 50 [V2 2 6, V2 3 6, V2 4 6, V2 4 7, V2 4 8] (V2 40 6) [] 0
@@ -69,7 +74,7 @@ handleEvent s (AppEvent (Counter i)) = Brick.continue (incCounter s i)
 handleEvent s _ = continue s
 
 incCounter :: State -> Int -> State
-incCounter s i = s { counter = i + 1 }
+incCounter s i = s { counter = counter s + i }
 
 movApple :: State -> (Int, Int) -> State
 movApple s (x, y) = let a = apple s
