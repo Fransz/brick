@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "brickDemo:lib"
+
+    - path: "./app/Main.hs"
+      component: "brickDemo:exe:brickDemo-exe"
+
+    - path: "./app/Paths_brickDemo.hs"
+      component: "brickDemo:exe:brickDemo-exe"
+
+    - path: "./test"
+      component: "brickDemo:test:brickDemo-test"
