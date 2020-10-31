@@ -32,12 +32,14 @@ data Cell = SnakeCell | AppleCell | GridCell deriving (Show)
 
 
 ui :: State -> [Widget GRID_NAME]
-ui s = [ borderWithLabel (str "snake") grid ]
+ui s = [borderWithLabel (str "snake") $ snakeUi s <+> scoreUi s ]
+
+snakeUi :: State -> Widget GRID_NAME
+snakeUi s = padLeft (Pad 1) $ padTopBottom 1 $ border $ vBox $ map hBox ws
   where
     rs = [ 0 .. rows s - 1]
     ws = map (\y -> [ draw (V2 x y)  | x <- [0 .. cols s -1] ]) rs
     draw = wid . isCell
-    grid = vBox $ map hBox ws
 
     isCell :: Pos -> Cell
     isCell p
@@ -50,6 +52,9 @@ ui s = [ borderWithLabel (str "snake") grid ]
       SnakeCell -> withAttr (attrName "snake") $ str "  "
       AppleCell -> withAttr (attrName "apple") $ str "  "
       GridCell -> withAttr (attrName "grid") $ str "  "
+
+scoreUi :: State -> Widget GRID_NAME
+scoreUi s = padLeft (Pad 10) $ padAll 1 $ vLimit 10 $ borderWithLabel (str "score") (fill ' ')
 
 initialState :: State
 initialState = State 50 50 [V2 2 6, V2 3 6, V2 4 6, V2 4 7, V2 4 8] (V2 40 6) [] 0
