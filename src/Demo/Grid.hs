@@ -4,32 +4,36 @@ where
 import Brick
 import Brick.Widgets.Border
 
+import Linear.V2
+import Lens.Micro
 import qualified Graphics.Vty as GV
 
 data GRID_NAME = GRID_NAME deriving (Show, Ord, Eq)
 
+type Pos = V2 Int
+
 data State = State {
   rows :: Int,
   cols :: Int,
-  snake :: [(Int, Int)],
-  apple :: (Int, Int),
+  snake :: [Pos],
+  apple :: Pos,
   moves :: [(Int, Int)]
 } deriving (Show)
 
 data Cell = SnakeCell | AppleCell | GridCell deriving (Show)
-          
+
 ui :: State -> [Widget GRID_NAME]
 ui s = [ borderWithLabel (str "snake") grid ]
   where
     rs = [ 0 .. rows s - 1]
-    ws = map (\y -> [ draw (x, y) | x <- [0 .. cols s -1] ]) rs
+    ws = map (\y -> [ draw (V2 x y)  | x <- [0 .. cols s -1] ]) rs
     draw = wid . isCell
     grid = vBox $ map hBox ws
 
-    isCell :: (Int, Int) -> Cell
-    isCell (x, y) 
-      | (x, y) `elem` snake s = SnakeCell
-      | (x, y) == apple s = AppleCell
+    isCell :: Pos -> Cell
+    isCell p
+      | p `elem` snake s = SnakeCell
+      | p == apple s = AppleCell
       | otherwise = GridCell
 
     wid :: Cell -> Widget GRID_NAME
@@ -39,7 +43,7 @@ ui s = [ borderWithLabel (str "snake") grid ]
       GridCell -> withAttr (attrName "grid") $ str "  "
 
 initialState :: State
-initialState = State 50 50 [(2,6), (3,6), (4,6), (5,6), (6,6)] (40,6) []
+initialState = State 50 50 [V2 2 6, V2 3 6, V2 4 6, V2 4 7, V2 4 8] (V2 40 6) []
 
 handleEvent :: State -> BrickEvent GRID_NAME ev -> Brick.EventM GRID_NAME (Next State)
 handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = Brick.halt s
@@ -51,9 +55,9 @@ handleEvent s _ = continue s
 
 movApple :: State -> (Int, Int) -> State
 movApple s (x, y) = let a = apple s
-                        x' = (fst a + x) `mod` cols s
-                        y' = (snd a + y) `mod` rows s
-                    in s { apple = (x', y') }
+                        a' = a & _x %~ (\x' -> x + x' `mod` rows s)
+                        a'' = a' & _y %~ (\y' -> y + y' `mod` cols s)
+                    in s { apple = a'' }
 
 aMap :: AttrMap
 aMap = attrMap GV.defAttr [
