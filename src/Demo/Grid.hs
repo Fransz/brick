@@ -68,8 +68,8 @@ incCounter s i = s { counter = i + 1 }
 
 movApple :: State -> (Int, Int) -> State
 movApple s (x, y) = let a = apple s
-                        a' = a & _x %~ (\x' -> x + x' `mod` rows s)
-                        a'' = a' & _y %~ (\y' -> y + y' `mod` cols s)
+                        a' = a & _x %~ (\x' -> (x'+ x) `mod` cols s)
+                        a'' = a' & _y %~ (\y' -> (y'+ y) `mod` rows s)
                     in s { apple = a'' }
 
 aMap :: AttrMap
