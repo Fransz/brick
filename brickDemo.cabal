@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a337162cd653d0337b884225a61cbdcc72500b5f500c42890796b7c722a47e19
+-- hash: ffc8894322e12daf047a73da5fc55f8cd3fd7b5bbd8f7e929dd64ccc9699a450
 
 name:           brickDemo
 version:        0.1.0.0
@@ -28,8 +28,8 @@ source-repository head
 library
   exposed-modules:
       Demo.CustomEvent
-      Demo.Grid
       Demo.HelloWorld
+      Demo.SnakeUi
       FizzBuzz
   other-modules:
       Paths_brickDemo

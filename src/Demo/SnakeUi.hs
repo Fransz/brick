@@ -1,4 +1,4 @@
-module Demo.Grid (startApp)
+module Demo.SnakeUi (startApp)
 where
 
 import Brick
@@ -10,7 +10,6 @@ import Lens.Micro
 import qualified Graphics.Vty as GV
 import Control.Concurrent
 import Control.Monad
-import Brick.Widgets.Center
 
 
 newtype CounterEvent = Counter Int
@@ -102,7 +101,7 @@ startApp :: IO State
 startApp = do 
     eventChannel <- Brick.BChan.newBChan 10
 
-    forkIO $ forever $ do 
+    _ <- forkIO $ forever $ do 
         Brick.BChan.writeBChan eventChannel (Counter 1)
         threadDelay 1000000
 
