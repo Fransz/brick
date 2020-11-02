@@ -1,19 +1,15 @@
 module Demo.Snake 
     ( SnakeState (..)
     , SnakeMove (..)
-    , CounterEvent (..)
     , Pos
     , initialState
     , move
     , addMove
-    , incCounter
     , newSnakeState
     ) where
 
 import Lens.Micro ((%~), (&))
 import Linear.V2 (V2 (..), _x, _y)
-
-newtype CounterEvent = Counter Int
 
 type Pos = V2 Int
 
@@ -32,8 +28,8 @@ data SnakeMove = SnakeUp | SnakeDown | SnakeLeft | SnakeRight deriving (Show, Eq
 initialState :: SnakeState
 initialState = SnakeState 50 50 [V2 2 6, V2 3 6, V2 4 6, V2 4 7, V2 4 8] (V2 40 6) SnakeRight 0
 
-incCounter :: SnakeState -> Int -> SnakeState
-incCounter s i = s {counter = counter s + i}
+tick :: Int -> SnakeState -> SnakeState
+tick i s = s {counter = counter s + i}
 
 move :: SnakeState -> SnakeState
 move s =
@@ -57,4 +53,4 @@ addMove s m | m `elem` [SnakeUp, SnakeDown] && cur `elem` [SnakeUp, SnakeDown] =
     where cur = direction s
 
 newSnakeState :: SnakeState -> SnakeState
-newSnakeState = move 
+newSnakeState = tick 1 . move 

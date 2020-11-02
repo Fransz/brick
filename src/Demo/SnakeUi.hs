@@ -8,7 +8,7 @@ import Demo.Snake
     , Pos
     , addMove
     , newSnakeState
-    , CounterEvent(..))
+    )
 
 import Brick
 import Brick.BChan
@@ -19,6 +19,7 @@ import qualified Linear.V2 as LV (V2(..))
 import Control.Concurrent
 import Control.Monad
 
+data SnakeEvent = SnakeEvent 
 
 data GRID_NAME = GRID_NAME deriving (Show, Ord, Eq)
 
@@ -54,13 +55,13 @@ scoreUi s = pad $ score <=> fill ' '
       pad w = padLeft (Pad 10) $ padAll 1 $ vLimit 10 $ borderWithLabel (str "score") $ padAll 1 w
       score = str $ "score: " ++ show (counter s)
 
-handleEvent :: SnakeState -> BrickEvent GRID_NAME CounterEvent -> Brick.EventM GRID_NAME (Next SnakeState)
+handleEvent :: SnakeState -> BrickEvent GRID_NAME SnakeEvent -> Brick.EventM GRID_NAME (Next SnakeState)
 handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = Brick.halt s
 handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = Brick.continue (addMove s SnakeUp)
 handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = Brick.continue (addMove s SnakeDown)
 handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = Brick.continue (addMove s SnakeLeft)
 handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = Brick.continue (addMove s SnakeRight)
-handleEvent s (AppEvent (Counter i)) = Brick.continue (newSnakeState s)
+handleEvent s (AppEvent SnakeEvent) = Brick.continue (newSnakeState s)
 handleEvent s _ = continue s
 
 aMap :: AttrMap
@@ -70,7 +71,7 @@ aMap = attrMap GV.defAttr [
   , (attrName "snake", bg GV.red)
   ]
 
-theApp :: App SnakeState CounterEvent GRID_NAME
+theApp :: App SnakeState SnakeEvent GRID_NAME
 theApp = App {
     appDraw = ui,
     appStartEvent = return,
@@ -84,7 +85,7 @@ startApp = do
     eventChannel <- Brick.BChan.newBChan 10
 
     _ <- forkIO $ forever $ do 
-        Brick.BChan.writeBChan eventChannel (Counter 1)
+        Brick.BChan.writeBChan eventChannel SnakeEvent
         threadDelay 1000000
 
     let buildVty = GV.mkVty GV.defaultConfig
