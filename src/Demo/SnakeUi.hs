@@ -1,7 +1,14 @@
 module Demo.SnakeUi (startApp)
 where
 
-import Demo.Snake (initialState, SnakeState(..), Pos, move, incCounter, CounterEvent(..))
+import Demo.Snake 
+    (initialState
+    , SnakeState(..)
+    , SnakeMove(..)
+    , Pos
+    , addMove
+    , newSnakeState
+    , CounterEvent(..))
 
 import Brick
 import Brick.BChan
@@ -49,11 +56,11 @@ scoreUi s = pad $ score <=> fill ' '
 
 handleEvent :: SnakeState -> BrickEvent GRID_NAME CounterEvent -> Brick.EventM GRID_NAME (Next SnakeState)
 handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = Brick.halt s
-handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = Brick.continue (move s (0, -1))
-handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = Brick.continue (move s (0, 1))
-handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = Brick.continue (move s (-1, 0))
-handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = Brick.continue (move s (1, 0))
-handleEvent s (AppEvent (Counter i)) = Brick.continue (incCounter s i)
+handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = Brick.continue (addMove s SnakeUp)
+handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = Brick.continue (addMove s SnakeDown)
+handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = Brick.continue (addMove s SnakeLeft)
+handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = Brick.continue (addMove s SnakeRight)
+handleEvent s (AppEvent (Counter i)) = Brick.continue (newSnakeState s)
 handleEvent s _ = continue s
 
 aMap :: AttrMap

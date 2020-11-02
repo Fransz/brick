@@ -1,30 +1,60 @@
-module Demo.Snake (SnakeState(..),CounterEvent(..),move,Pos,incCounter,initialState)
-where
+module Demo.Snake 
+    ( SnakeState (..)
+    , SnakeMove (..)
+    , CounterEvent (..)
+    , Pos
+    , initialState
+    , move
+    , addMove
+    , incCounter
+    , newSnakeState
+    ) where
 
-import Linear.V2 (V2(..), _x, _y)
 import Lens.Micro ((%~), (&))
+import Linear.V2 (V2 (..), _x, _y)
 
 newtype CounterEvent = Counter Int
 
 type Pos = V2 Int
 
-data SnakeState = SnakeState {
-  rows :: Int,
-  cols :: Int,
-  snake :: [Pos],
-  apple :: Pos,
-  moves :: [(Int, Int)],
-  counter :: Int
-} deriving (Show)
+data SnakeState = SnakeState
+  { rows :: Int,
+    cols :: Int,
+    snake :: [Pos],
+    apple :: Pos,
+    direction :: SnakeMove,
+    counter :: Int
+  }
+  deriving (Show)
+
+data SnakeMove = SnakeUp | SnakeDown | SnakeLeft | SnakeRight deriving (Show, Eq)
 
 initialState :: SnakeState
-initialState = SnakeState 50 50 [V2 2 6, V2 3 6, V2 4 6, V2 4 7, V2 4 8] (V2 40 6) [] 0
+initialState = SnakeState 50 50 [V2 2 6, V2 3 6, V2 4 6, V2 4 7, V2 4 8] (V2 40 6) SnakeRight 0
 
 incCounter :: SnakeState -> Int -> SnakeState
-incCounter s i = s { counter = counter s + i }
+incCounter s i = s {counter = counter s + i}
 
-move :: SnakeState -> (Int, Int) -> SnakeState
-move s (x, y) = let a = apple s
-                    a' = a & _x %~ (\x' -> (x'+ x) `mod` cols s)
-                    a'' = a' & _y %~ (\y' -> (y'+ y) `mod` rows s)
-                in s { apple = a'' }
+move :: SnakeState -> SnakeState
+move s =
+  let a = apple s
+      (x, y) = moveToDirection $ direction s
+      a' = a & _x %~ (\x' -> (x' + x) `mod` cols s)
+      a'' = a' & _y %~ (\y' -> (y' + y) `mod` rows s)
+   in s {apple = a''}
+
+moveToDirection :: SnakeMove -> (Int, Int)
+moveToDirection SnakeRight = (1,0)
+moveToDirection SnakeLeft = (-1,0)
+moveToDirection SnakeUp = (0,-1)
+moveToDirection SnakeDown = (0,1)
+
+addMove :: SnakeState -> SnakeMove -> SnakeState
+addMove s m | m `elem` [SnakeUp, SnakeDown] && cur `elem` [SnakeUp, SnakeDown] = s
+            | m `elem` [SnakeUp, SnakeDown] = s {direction = m}
+            | m `elem` [SnakeLeft, SnakeRight] &&  cur `elem` [SnakeLeft, SnakeRight] = s 
+            | m `elem` [SnakeLeft, SnakeRight] = s {direction = m}
+    where cur = direction s
+
+newSnakeState :: SnakeState -> SnakeState
+newSnakeState = move 
