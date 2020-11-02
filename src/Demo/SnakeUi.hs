@@ -1,7 +1,7 @@
 module Demo.SnakeUi (startApp)
 where
 
-import Demo.Snake 
+import Demo.Snake
     (initialState
     , SnakeState(..)
     , SnakeMove(..)
@@ -13,13 +13,15 @@ import Demo.Snake
 import Brick
 import Brick.BChan
 import Brick.Widgets.Border
+import Brick.Widgets.Center
+
 import qualified Graphics.Vty as GV
 
 import qualified Linear.V2 as LV (V2(..))
 import Control.Concurrent
 import Control.Monad
 
-data SnakeEvent = SnakeEvent 
+data SnakeEvent = SnakeEvent
 
 data GRID_NAME = GRID_NAME deriving (Show, Ord, Eq)
 
@@ -50,10 +52,11 @@ snakeUi s = pad $ vBox $ map hBox wids
       GridCell -> withAttr (attrName "grid") $ str "  "
 
 scoreUi :: SnakeState -> Widget GRID_NAME
-scoreUi s = pad $ score <=> fill ' '
-    where 
-      pad w = padLeft (Pad 10) $ padAll 1 $ vLimit 10 $ borderWithLabel (str "score") $ padAll 1 w
-      score = str $ "score: " ++ show (counter s)
+scoreUi s = pad $ if gameover s then msg else score <=> fill ' '
+    where
+      pad w = padLeft (Pad 10) $ padAll 1 $ vLimit 8 $ borderWithLabel (str "score") $ padAll 1 w
+      score = hCenter (str ("score: " ++ show (counter s))) <=> hCenter (padTop (Pad 1) (str ("apples: " ++ show (apples s))))
+      msg = center $ str "GAME OVER"
 
 handleEvent :: SnakeState -> BrickEvent GRID_NAME SnakeEvent -> Brick.EventM GRID_NAME (Next SnakeState)
 handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = Brick.halt s
@@ -81,12 +84,12 @@ theApp = App {
 }
 
 startApp :: IO SnakeState
-startApp = do 
+startApp = do
     eventChannel <- Brick.BChan.newBChan 10
 
-    _ <- forkIO $ forever $ do 
+    _ <- forkIO $ forever $ do
         Brick.BChan.writeBChan eventChannel SnakeEvent
-        threadDelay 1000000
+        threadDelay 100000
 
     let buildVty = GV.mkVty GV.defaultConfig
     initialVty <- buildVty
