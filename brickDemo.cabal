@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ffc8894322e12daf047a73da5fc55f8cd3fd7b5bbd8f7e929dd64ccc9699a450
+-- hash: e808da604484af89ddf11350841cc38dbf5d8f93e3e5665d0036b67ba8c4b5cd
 
 name:           brickDemo
 version:        0.1.0.0
@@ -29,6 +29,7 @@ library
   exposed-modules:
       Demo.CustomEvent
       Demo.HelloWorld
+      Demo.Snake
       Demo.SnakeUi
       FizzBuzz
   other-modules:
