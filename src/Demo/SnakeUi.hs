@@ -55,7 +55,7 @@ scoreUi :: SnakeState -> Widget GRID_NAME
 scoreUi s = pad $ if gameover s then msg else score <=> fill ' '
     where
       pad w = padLeft (Pad 10) $ padAll 1 $ vLimit 8 $ borderWithLabel (str "score") $ padAll 1 w
-      score = hCenter (str ("score: " ++ show (counter s))) <=> hCenter (padTop (Pad 1) (str ("apples: " ++ show (apples s))))
+      score = hCenter (str ("score: " ++ show (counter s))) <=> hCenter (padTop (Pad 1) (str ("apples: " ++ show (appleCount s))))
       msg = center $ str "GAME OVER"
 
 handleEvent :: SnakeState -> BrickEvent GRID_NAME SnakeEvent -> Brick.EventM GRID_NAME (Next SnakeState)

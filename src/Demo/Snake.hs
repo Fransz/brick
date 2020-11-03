@@ -9,6 +9,7 @@ module Demo.Snake
 
 import Lens.Micro ((^.))
 import Linear.V2 (V2 (..), _x, _y)
+import System.Random (randomRs, mkStdGen)
 
 type Pos = V2 Int
 
@@ -20,7 +21,8 @@ data SnakeState = SnakeState
   , direction :: SnakeMove
   , gameover :: Bool
   , counter :: Int
-  , apples :: Int
+  , appleCount :: Int
+  , rndApples :: [V2 Int]
   }
   deriving (Show)
 
@@ -30,49 +32,50 @@ initialState :: SnakeState
 initialState = SnakeState
     { cols = 50
     , rows = 50
-    , snake = [V2 6 6, V2 7 6, V2 8 6, V2 9 6, V2 10 6, V2 11 6, V2 12 6, V2 13 6, V2 14 6, V2 15 6, V2 16 6, V2 17 6, V2 18 6, V2 19 6, V2 20 6, V2 21 6, V2 22 6]
+    , snake = [V2 6 6]
     , apple = V2 44 6
-    , direction = SnakeLeft
+    , direction = SnakeRight
     , gameover = False
     , counter = 0
-    , apples = 0
+    , appleCount = 0
+    , rndApples = randomRs (V2 0 0, V2 50 50)(mkStdGen 1)
 }
+
+newSnakeState :: SnakeState -> SnakeState
+newSnakeState s | gameover s = s
+                | otherwise = tick 1 $ move s
 
 tick :: Int -> SnakeState -> SnakeState
 tick i s = s {counter = counter s + i}
 
-{-
- - moveApple :: SnakeState -> SnakeState
- - moveApple s =
- -   let a = apple s
- -       (x, y) = toDelta $ direction s
- -       a' = a & _x %~ (\x' -> (x' + x) `mod` cols s)
- -       a'' = a' & _y %~ (\y' -> (y' + y) `mod` rows s)
- -    in s {apple = a''}
- -}
-
 move :: SnakeState -> SnakeState
-move s = let nh = nextHead s
-         in (eatApple nh . growSnake nh . isCrash nh) s
+move s = (eatApple h . growSnake h . isCrash h) s
+    where h = nextHead s
+         
+isCrash :: Pos -> SnakeState -> SnakeState
+isCrash p s | p `elem` snake s = s { gameover = True }
+            | otherwise = s
 
 growSnake :: Pos -> SnakeState -> SnakeState
 growSnake p s | gameover s = s
               | otherwise = s { snake = p : snake s }
 
 eatApple :: Pos -> SnakeState -> SnakeState
-eatApple p s | gameover s = s
-  | apple s == p = s { apple = V2 6 44, apples = apples s + 1 }
-             | otherwise = s { snake = init (snake s) }
+eatApple p s 
+  | gameover s = s
+  | apple s == p = let (a', rndApples') = nextApple (snake s) (rndApples s)
+                    in s { apple = a', rndApples = rndApples', appleCount = appleCount s + 1 }
+  | otherwise = s { snake = init (snake s) }
 
-isCrash :: Pos -> SnakeState -> SnakeState
-isCrash p s | p `elem` snake s = s { gameover = True }
-            | otherwise = s
+nextApple :: [Pos] -> [Pos] -> (Pos, [Pos])
+nextApple ps rps | head rps `elem` ps = nextApple ps (tail rps)
+                 | otherwise = (head rps, tail rps)
 
 nextHead :: SnakeState -> Pos
-nextHead s = let p = head $ snake s 
-                 (dx, dy) = toDelta $ direction s
-                 (x, y) = (p ^._x, p ^._y)
-              in V2 ((dx + x) `mod` cols s) ((dy + y) `mod` rows s)
+nextHead s = V2 ((dx + x) `mod` cols s) ((dy + y) `mod` rows s)
+    where p = head $ snake s 
+          (x, y) = (p ^._x, p ^._y)
+          (dx, dy) = toDelta $ direction s
 
 toDelta :: SnakeMove -> (Int, Int)
 toDelta SnakeRight = (1,0)
@@ -86,7 +89,3 @@ addMove s m | m `elem` [SnakeUp, SnakeDown] && cur `elem` [SnakeUp, SnakeDown] =
             | m `elem` [SnakeLeft, SnakeRight] &&  cur `elem` [SnakeLeft, SnakeRight] = s
             | m `elem` [SnakeLeft, SnakeRight] = s {direction = m}
     where cur = direction s
-
-newSnakeState :: SnakeState -> SnakeState
-newSnakeState s | gameover s = s
-                | otherwise = tick 1 $ move s

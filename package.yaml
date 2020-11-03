@@ -27,6 +27,7 @@ dependencies:
 - microlens
 - microlens-th
 - linear
+- random
 
 library:
   source-dirs: 
