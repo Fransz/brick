@@ -3,12 +3,13 @@
 module Demo.TetrisUi (startApp)
 where
 
-import Demo.Tetris
-    (
-    initialState
-    , newTetrisState
-    , TetrisState (..)
+import Demo.Tetris (
+    initialGame
+    , Game(..)
     , Block(..)
+    , Direction(..)
+    , moveGame
+    , tickGame
     )
 
 import Brick
@@ -32,10 +33,10 @@ data TETRISNAME = TETRISNAME deriving (Show, Ord, Eq)
 
 data Cell = TetrisCell | AppleCell | GridCell deriving (Show)
 
-ui :: TetrisState -> [Widget TETRISNAME]
+ui :: Game -> [Widget TETRISNAME]
 ui s = [borderWithLabel (str "tetris") $ tetrisUi s <+> scoreUi s ]
 
-tetrisUi :: TetrisState -> Widget TETRISNAME
+tetrisUi :: Game -> Widget TETRISNAME
 tetrisUi s = pad $ vBox $ map hBox wids
   where
     pad w = padLeft (Pad 1) $ padTopBottom 1 $ border w
@@ -59,16 +60,19 @@ tetrisUi s = pad $ vBox $ map hBox wids
     wid :: AttrName -> Widget TETRISNAME
     wid a = withAttr a $ str "  "
 
-scoreUi :: TetrisState -> Widget TETRISNAME
+scoreUi :: Game -> Widget TETRISNAME
 scoreUi s = pad $ if gameover s then msg else score <=> fill ' '
     where
       pad w = padLeft (Pad 10) $ padAll 1 $ vLimit 8 $ borderWithLabel (str "score") $ padAll 1 w
       score = hCenter (str ("score: " ++ show (counter s)))
       msg = center $ str "GAME OVER"
 
-handleEvent :: TetrisState -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next TetrisState)
+handleEvent :: Game -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next Game)
 handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = halt s
-handleEvent s (AppEvent TetrisEvent) = continue (newTetrisState s)
+handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ moveGame TetrisLeft s
+handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ moveGame TetrisRight s
+handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ moveGame TetrisUp s
+handleEvent s (AppEvent TetrisEvent) = continue (tickGame s)
 handleEvent s _ = continue s
 
 aMap :: AttrMap
@@ -83,7 +87,7 @@ aMap = attrMap GV.defAttr [
   , (attrName "lblock", bg GV.brightBlack)
   ]
 
-theApp :: App TetrisState TetrisEvent TETRISNAME
+theApp :: App Game TetrisEvent TETRISNAME
 theApp = App {
     appDraw = ui,
     appStartEvent = return,
@@ -92,7 +96,7 @@ theApp = App {
     appChooseCursor = neverShowCursor
 }
 
-startApp :: IO TetrisState
+startApp :: IO Game
 startApp = do
     eventChannel <- newBChan 10
 
@@ -103,4 +107,4 @@ startApp = do
     let buildVty = GV.mkVty GV.defaultConfig
     initialVty <- buildVty
 
-    customMain initialVty buildVty (Just eventChannel) theApp initialState
+    customMain initialVty buildVty (Just eventChannel) theApp initialGame
