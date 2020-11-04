@@ -9,12 +9,15 @@ import qualified Brick.Widgets.Border.Style as BWBS
 import qualified Brick.Widgets.Center as BWC
 import qualified Brick.Widgets.Core as BW
 import qualified Brick.Widgets.List as BL
+
 import Control.Monad (void)
 import qualified Data.Vector as DV (fromList)
+import qualified Graphics.Vty as GV
+
 import qualified Demo.CustomEvent as DC
 import qualified Demo.SnakeUi as SU
 import qualified Demo.HelloWorld as HW
-import qualified Graphics.Vty as GV
+import qualified Demo.TetrisUi as DT
 
 --
 -- MenuState  a vector of strings
@@ -69,7 +72,7 @@ theApp =
     }
 
 initialState :: MenuState
-initialState = BL.list () (DV.fromList ["hello world", "snake", "customevent", "quit"]) 1
+initialState = BL.list () (DV.fromList ["hello world", "snake", "customevent", "tetris", "quit"]) 1
 
 main :: IO ()
 main = void $ do
@@ -78,5 +81,6 @@ main = void $ do
     Just (_, "hello world") -> HW.startApp >> main
     Just (_, "customevent") -> DC.startApp >> main
     Just (_, "snake") -> SU.startApp >> main
+    Just (_, "tetris") -> DT.startApp >> main
     Just (_, "quit") -> return ()
     _ -> return ()

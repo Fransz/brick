@@ -29,6 +29,7 @@ dependencies:
 - linear
 - random
 - mtl
+- containers
 
 library:
   source-dirs: 

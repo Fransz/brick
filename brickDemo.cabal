@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7d8bb184793f7defe4774718c2df6cda425ec78319c14b8b462657f6c712193b
+-- hash: 28afe9ac4dc994e0fe01236da6207ca2164f12813f3ea509ab3559696bbe6bb1
 
 name:           brickDemo
 version:        0.1.0.0
@@ -31,6 +31,8 @@ library
       Demo.HelloWorld
       Demo.Snake
       Demo.SnakeUi
+      Demo.Tetris
+      Demo.TetrisUi
       FizzBuzz
   other-modules:
       Paths_brickDemo
@@ -39,6 +41,7 @@ library
   build-depends:
       base >=4.7 && <5
     , brick
+    , containers
     , linear
     , microlens
     , microlens-th
@@ -59,6 +62,7 @@ executable brickDemo-exe
       base >=4.7 && <5
     , brick
     , brickDemo
+    , containers
     , linear
     , microlens
     , microlens-th
@@ -80,6 +84,7 @@ test-suite brickDemo-test
       base >=4.7 && <5
     , brick
     , brickDemo
+    , containers
     , linear
     , microlens
     , microlens-th
