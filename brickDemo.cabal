@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 976a46c0a0fcabc79cea3084027a35f0fc5ff05315f3b5c3cc700a6bad2a20c6
+-- hash: 7d8bb184793f7defe4774718c2df6cda425ec78319c14b8b462657f6c712193b
 
 name:           brickDemo
 version:        0.1.0.0
@@ -42,6 +42,7 @@ library
     , linear
     , microlens
     , microlens-th
+    , mtl
     , random
     , vector
     , vty
@@ -61,6 +62,7 @@ executable brickDemo-exe
     , linear
     , microlens
     , microlens-th
+    , mtl
     , random
     , vector
     , vty
@@ -81,6 +83,7 @@ test-suite brickDemo-test
     , linear
     , microlens
     , microlens-th
+    , mtl
     , random
     , vector
     , vty

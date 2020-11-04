@@ -17,10 +17,10 @@ import qualified Demo.HelloWorld as HW
 import qualified Graphics.Vty as GV
 
 --
--- State  a vector of strings
-type State = BL.List () String
+-- MenuState  a vector of strings
+type MenuState = BL.List () String
 
-drawUi :: State -> [BT.Widget ()]
+drawUi :: MenuState -> [BT.Widget ()]
 drawUi s = [ui]
   where
     widget = BL.renderList renderEntry True s
@@ -38,16 +38,16 @@ drawUi s = [ui]
             BWB.borderWithLabel (BW.str "label") $
               BW.hLimit 25 $ BW.vLimit 15 widget
 
-drawCursor :: State -> [BT.CursorLocation ()] -> Maybe (BT.CursorLocation ())
+drawCursor :: MenuState -> [BT.CursorLocation ()] -> Maybe (BT.CursorLocation ())
 drawCursor = undefined
 
-handleEvent :: State -> BT.BrickEvent () ev -> BT.EventM () (BT.Next State)
+handleEvent :: MenuState -> BT.BrickEvent () ev -> BT.EventM () (BT.Next MenuState)
 handleEvent s (BT.VtyEvent (GV.EvKey GV.KEsc [])) = BM.halt $ BL.listFindBy (== "quit") s
 handleEvent s (BT.VtyEvent (GV.EvKey GV.KEnter [])) = BM.halt s
 handleEvent s (BT.VtyEvent e) = BM.continue =<< BL.handleListEvent e s
 handleEvent s _ = BM.continue s
 
-startEvent :: State -> BT.EventM () State
+startEvent :: MenuState -> BT.EventM () MenuState
 startEvent = undefined
 
 aMap :: BA.AttrMap
@@ -58,7 +58,7 @@ aMap = BA.attrMap GV.defAttr attributes
         (BL.listSelectedAttr <> BA.attrName "custom", BU.bg GV.red)
       ]
 
-theApp :: BM.App State () ()
+theApp :: BM.App MenuState () ()
 theApp =
   BM.App
     { BM.appDraw = drawUi,
@@ -68,7 +68,7 @@ theApp =
       BM.appAttrMap = const aMap
     }
 
-initialState :: State
+initialState :: MenuState
 initialState = BL.list () (DV.fromList ["hello world", "snake", "customevent", "quit"]) 1
 
 main :: IO ()

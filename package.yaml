@@ -28,6 +28,7 @@ dependencies:
 - microlens-th
 - linear
 - random
+- mtl
 
 library:
   source-dirs: 
