@@ -60,7 +60,7 @@ moveGame d g = g { blocks = map (moveBlock d g) (blocks g)}
 moveBlock :: TetrisDirection -> Game -> Block -> Block
 moveBlock TetrisLeft g b = moveCenter b (V2 (-1) 0) 0 (cols g)
 moveBlock TetrisRight g b = moveCenter b (V2 1 0) 0 (cols g)
-moveBlock TetrisDown g b =  rotate b 0 (cols g)
+moveBlock TetrisDown g b =  moveCenter b (V2 0 1) 0 (cols g)
 moveBlock TetrisUp g b = rotate b 0 (cols g)
 
 moveCenter :: Block -> V2 Int -> Int -> Int -> Block   
@@ -80,11 +80,11 @@ inBounds ps min max = all (>= min) xs && all (< max) xs
     where xs = map (^._x) ps
 
 tickGame :: Game -> Game
-tickGame s | gameover s = s
-                 | otherwise = tick 1 s 
+tickGame g | gameover g = g
+           | otherwise = tick 1 $ moveGame TetrisDown g
 
 tick :: Int -> Game -> Game
-tick i s = s {counter = counter s + i}
+tick i g = g {counter = counter g + i}
 
 -- Map of all blocks, all positions with the blocks attr.
 posNameMap :: Game -> Map.Map Pos String                      
