@@ -58,26 +58,24 @@ moveGame :: TetrisDirection -> Game -> Game
 moveGame d g = g { blocks = map (moveBlock d g) (blocks g)}
 
 moveBlock :: TetrisDirection -> Game -> Block -> Block
-moveBlock TetrisLeft g b = moveCenter b (V2 (-1) 0) 0 (cols g)
-moveBlock TetrisRight g b = moveCenter b (V2 1 0) 0 (cols g)
-moveBlock TetrisDown g b =  moveCenter b (V2 0 1) 0 (cols g)
-moveBlock TetrisUp g b = rotate b 0 (cols g)
+moveBlock dir game block = let block' = case dir of
+                                           TetrisLeft -> moveCenter block (V2 (-1) 0)
+                                           TetrisRight -> moveCenter block (V2 1 0)
+                                           TetrisDown -> moveCenter block (V2 0 1)
+                                           TetrisUp -> rotate block
+                             in if inBounds block' 0 (cols game) then block' else block
 
-moveCenter :: Block -> V2 Int -> Int -> Int -> Block   
-moveCenter b d min max = let poss' = map (+ d) $ poss b 
-                             poss'' = map (+ pos b) poss'
-                          in if inBounds poss'' min max then b { pos = pos b + d } else b
+moveCenter :: Block -> V2 Int -> Block
+moveCenter b d = b { pos = pos b + d }
 
-rotate :: Block -> Int -> Int -> Block
-rotate b min max = let poss' = map perp $ poss b
-                       poss'' = map (+ pos b) poss'
-                    in if inBounds poss'' min max then b { poss = poss' } else b
+rotate :: Block -> Block
+rotate b = b { poss = map perp $ poss b }
 
 moveGround = undefined
 
-inBounds :: [Pos] -> Int -> Int -> Bool
-inBounds ps min max = all (>= min) xs && all (< max) xs 
-    where xs = map (^._x) ps
+inBounds :: Block -> Int -> Int -> Bool
+inBounds b min max = all (>= min) xs && all (< max) xs
+    where xs = map ((^._x) . (+ pos b)) (poss b)
 
 tickGame :: Game -> Game
 tickGame g | gameover g = g
@@ -87,10 +85,9 @@ tick :: Int -> Game -> Game
 tick i g = g {counter = counter g + i}
 
 -- Map of all blocks, all positions with the blocks attr.
-posNameMap :: Game -> Map.Map Pos String                      
+posNameMap :: Game -> Map.Map Pos String
 posNameMap g = Map.fromList (concatMap posNameTpl (blocks g))
 
 -- List off absolute positions of a block, in a tuple with the blocks attrName
-posNameTpl :: Block -> [(Pos, String)]               
+posNameTpl :: Block -> [(Pos, String)]
 posNameTpl b = map ((, name b) . (+ pos b)) (poss b)
-
