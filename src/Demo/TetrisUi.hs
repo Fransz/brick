@@ -1,15 +1,13 @@
-{-# LANGUAGE TupleSections #-}
-
 module Demo.TetrisUi (startApp)
 where
 
-import Demo.Tetris (
-    initialGame
-    , Game(..)
-    , Block(..)
-    , Direction(..)
+import Demo.Tetris
+    ( Game(..)
+    , TetrisDirection(..)
+    , initialGame
     , moveGame
     , tickGame
+    , posNameMap
     )
 
 import Brick
@@ -23,7 +21,7 @@ import qualified Linear.V2 as LV (V2(..))
 
 import Control.Concurrent (threadDelay, forkIO)
 import Control.Monad (forever)
-import qualified Data.Map as Map (Map, findWithDefault, fromList)
+import qualified Data.Map as Map (findWithDefault)
 
 type Pos = LV.V2 Int
 
@@ -41,21 +39,12 @@ tetrisUi s = hLimit 100 $ hCenter $ pad $ vBox $ map hBox wids
   where
     pad w = padLeft (Pad 1) $ padTopBottom 1 $ border w
 
-    -- Map of all blocks, all positions with the blocks attr.
-    ps :: Map.Map Pos AttrName                      
-    ps = Map.fromList (concatMap ats (blocks s))
-
-    -- List off absolute positions of a block, in a tuple with the blocks attrName
-    ats :: Block -> [(Pos, AttrName)]               
-    ats b = map ((,attrName (name b)) . (+ c b)) (bps b)
-
-    -- All positions on the grid as widget with the correct attrname
     rs = [ 0 .. rows s - 1]
     wids = map (\y -> [ draw (LV.V2 x y)  | x <- [0 .. cols s - 1] ]) rs
     draw = wid . cellAttr
 
     cellAttr :: Pos -> AttrName
-    cellAttr p = Map.findWithDefault (attrName "grid") p ps
+    cellAttr p = attrName $ Map.findWithDefault "grid" p $ posNameMap s
 
     wid :: AttrName -> Widget TETRISNAME
     wid a = withAttr a $ str "  "
