@@ -15,15 +15,6 @@ type Pos = V2 Int
 data Direction = TetrisLeft | TetrisRight | TetrisUp | TetrisDown deriving (Show, Eq)
 
 
-
-data Game = Game
-    { cols :: Int
-    , rows :: Int
-    , blocks :: [Block]
-    , gameover :: Bool
-    , counter :: Int
-    }  deriving (Show)
-
 data Block = Block
     { c :: Pos
     , bps :: [Pos]
@@ -37,6 +28,24 @@ sBlock = Block { c = V2 20 20, bps = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], 
 zBlock = Block { c = V2 25 25, bps = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock" }
 jBlock = Block { c = V2 35 35, bps = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock" }
 lBlock = Block { c = V2 40 40, bps = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock" }
+
+data Game = Game
+    { cols :: Int
+    , rows :: Int
+    , blocks :: [Block]
+    , gameover :: Bool
+    , counter :: Int
+    }  deriving (Show)
+
+initialGame :: Game
+initialGame = Game
+    { cols = 36
+    , rows = 50
+    , blocks = [iBlock, oBlock, tBlock, sBlock, zBlock, jBlock, lBlock]
+    , gameover = False
+    , counter = 0
+}
+
 
 moveGame :: Direction -> Game -> Game
 moveGame d g = g { blocks = map (moveBlock d g) (blocks g)}
@@ -61,15 +70,6 @@ rotate b min max = let bps' = map perp $ bps b
 
 moveGround = undefined
 
-
-initialGame :: Game
-initialGame = Game
-    { cols = 50
-    , rows = 50
-    , blocks = [iBlock, oBlock, tBlock, sBlock, zBlock, jBlock, lBlock]
-    , gameover = False
-    , counter = 0
-}
 
 tickGame :: Game -> Game
 tickGame s | gameover s = s
