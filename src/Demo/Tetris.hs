@@ -45,19 +45,19 @@ moveBlock :: Direction -> Game -> Block -> Block
 moveBlock TetrisLeft g b = moveCenter b (V2 (-1) 0) 0 (cols g)
 moveBlock TetrisRight g b = moveCenter b (V2 1 0) 0 (cols g)
 moveBlock TetrisDown g b =  rotate b 0 (cols g)
-moveBlock TetrisUp g b = b { bps = map perp $ bps b }
+moveBlock TetrisUp g b = rotate b 0 (cols g)
 
 moveCenter :: Block -> V2 Int -> Int -> Int -> Block           -- block -> delta -> minx -> maxy
 moveCenter b d min max = let bps' = map (+ d) $ bps b          -- new relative positions
                              bps'' = map (+ c b) bps'          -- new absolute positions
                              xs = map (^._x) bps''             -- new absolute x
-                          in if all (> min) xs && all (< max) xs then b { c = c b + d } else b
+                          in if all (>= min) xs && all (< max) xs then b { c = c b + d } else b
 
 rotate :: Block -> Int -> Int -> Block
 rotate b min max = let bps' = map perp $ bps b
                        bps'' = map (+ c b) bps'
-                       xs = map(^._x) bps''
-                    in if all (> min) xs && all (< max) xs then b { bps = bps' } else b
+                       xs = map (^._x) bps''
+                    in if all (>= min) xs && all (< max) xs then b { bps = bps' } else b
 
 moveGround = undefined
 
