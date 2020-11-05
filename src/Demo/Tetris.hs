@@ -58,10 +58,10 @@ initialGame = Game
 
 
 moveGame :: TetrisDirection -> Game -> Game
-moveGame d g = let g' = g { wall = buildWall g }
-                   bs = filter ((== Moving) . status) $ blocks g'
-                   bs' = filter ((== Dropped) . status) $ blocks g'
-                in g' { blocks = map (moveBlock d g') bs ++ bs' }
+moveGame d g = let g' = g { wall = buildWall g ++ ground g}
+                   moving = filter ((== Moving) . status) $ blocks g'
+                   dropped = filter ((== Dropped) . status) $ blocks g'
+                in g' { blocks = map (moveBlock d g') moving ++ dropped }
 
 moveBlock :: TetrisDirection -> Game -> Block -> Block
 moveBlock dir game block = let block' = case dir of
@@ -69,8 +69,8 @@ moveBlock dir game block = let block' = case dir of
                                            TetrisRight -> moveCenter block (V2 1 0)
                                            TetrisDown -> moveCenter block (V2 0 1)
                                            TetrisUp -> rotate block
-                            in if inWall block' (wall game) then block { status = Dropped } else
-                                    if inBounds block' 0 (cols game) then block' else block
+                            in if inWall block' (wall game) then block { status = Dropped } 
+                               else if inBounds block' 0 (cols game) then block' else block
 
 moveCenter :: Block -> V2 Int -> Block
 moveCenter b d = b { pos = pos b + d }
@@ -83,18 +83,26 @@ inBounds b min max = all (>= min) xs && all (< max) xs
     where xs = map ((^._x) . (+ pos b)) (poss b)
 
 buildWall :: Game -> [Pos]
-buildWall g = concatMap absPos dropped ++ floor
+buildWall g = concatMap absPos dropped
     where
         dropped = filter ((== Dropped) . status)  $ blocks g
         absPos b = map (+ pos b) $ poss b
-        floor = map (\c -> V2 c (rows g)) $ take (cols g + 1) . iterate (+1) $ 0
+
+ground :: Game -> [Pos]
+ground g = map (\x -> V2 x (rows g)) $ take (cols g) . iterate (+1) $ 0
 
 inWall :: Block -> [Pos] -> Bool
 inWall b w = any ((`elem` w) . (+ pos b)) (poss b)
 
 tickGame :: Game -> Game
 tickGame g | gameover g = g
-           | otherwise = tick 1 $ moveGame TetrisDown g
+           | otherwise = tick 1 . newBlock . stripWall . moveGame TetrisDown $ g
+
+newBlock :: Game -> Game
+newBlock = undefined
+
+stripWall :: Game -> Game
+stripWall = undefined
 
 tick :: Int -> Game -> Game
 tick i g = g {counter = counter g + i}
