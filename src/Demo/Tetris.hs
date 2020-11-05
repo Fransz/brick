@@ -10,9 +10,10 @@ module Demo.Tetris
     , posNameMap
     ) where
 
-import Linear.V2 (V2(..), _x, perp)
+import Linear.V2 (V2(..), _x, _y, perp)
 import Lens.Micro ((^.))
 import qualified Data.Map as Map (Map, fromList)
+import qualified Data.List as List (groupBy, sortOn, partition)
 
 type Pos = V2 Int
 
@@ -35,7 +36,24 @@ sBlock = Block { pos = V2 20 20, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0
 zBlock = Block { pos = V2 25 25, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock", status = Moving }
 jBlock = Block { pos = V2 30 30, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock", status = Moving }
 lBlock = Block { pos = V2 35 35, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving }
-testBlock = Block { pos = V2 15 49, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving }
+testBlocks = [ Block { pos = V2 0 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 2 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 4 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 6 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 10 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 12 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 14 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 16 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 18 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 20 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 22 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 24 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 26 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 28 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 30 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 32 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 34 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             ]
 
 data Game = Game
     { cols :: Int
@@ -50,7 +68,7 @@ initialGame :: Game
 initialGame = Game
     { cols = 36
     , rows = 50
-    , blocks = [iBlock, oBlock, tBlock, sBlock, zBlock, jBlock, lBlock]
+    , blocks = [iBlock, oBlock, tBlock, sBlock, zBlock, jBlock, lBlock] ++ testBlocks
     , wall = []
     , gameover = False
     , counter = 0
@@ -69,7 +87,7 @@ moveBlock dir game block = let block' = case dir of
                                            TetrisRight -> moveCenter block (V2 1 0)
                                            TetrisDown -> moveCenter block (V2 0 1)
                                            TetrisUp -> rotate block
-                            in if inWall block' (wall game) then block { status = Dropped } 
+                            in if inWall block' (wall game) then block { status = Dropped }
                                else if inBounds block' 0 (cols game) then block' else block
 
 moveCenter :: Block -> V2 Int -> Block
@@ -96,13 +114,22 @@ inWall b w = any ((`elem` w) . (+ pos b)) (poss b)
 
 tickGame :: Game -> Game
 tickGame g | gameover g = g
-           | otherwise = tick 1 . newBlock . stripWall . moveGame TetrisDown $ g
+           | otherwise = tick 1 . newBlock . shrinkWall . moveGame TetrisDown $ g
 
 newBlock :: Game -> Game
-newBlock = undefined
+newBlock = id
 
-stripWall :: Game -> Game
-stripWall = undefined
+shrinkWall :: Game -> Game
+shrinkWall g = let grouped = List.groupBy (\v1 v2 -> v1 ^. _y == v2 ^. _y) . List.sortOn (^. _y) . buildWall $ g
+                   dels = concat $ filter ((== cols g) . length) grouped
+
+                   (dropped, moving) = List.partition (\b -> status b == Dropped) $ blocks g
+                   dropped' = map (delete dels) dropped
+                   delete ds b = b { poss = filter (not . (`elem` ds) . (+ pos b)) $ poss b }
+                
+                   dropped'' = filter (not . null . poss) dropped'
+                in g { blocks = moving ++ dropped'' }
+
 
 tick :: Int -> Game -> Game
 tick i g = g {counter = counter g + i}
