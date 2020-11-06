@@ -107,6 +107,10 @@ freeFallBlock :: [Pos] -> Block -> Block
 freeFallBlock w b = let b' = moveCenter b $ V2 0 1
                         in if inWall b' w then b {status = Dropped} else freeFallBlock w b'
 
+freeFallBlock' :: ([Pos], [Block]) -> Block -> ([Pos], [Block])
+freeFallBlock' (w, bs) b = let b' = moveCenter b $ V2 0 1
+                           in if inWall b' w then (w ++ map (+ pos b) (poss b), b : bs)  else freeFallBlock' (w, bs) b'
+
 
 inBounds :: Block -> Int -> Int -> Bool
 inBounds b min max = all (>= min) xs && all (< max) xs
@@ -141,7 +145,8 @@ shrinkWall g = let grouped = List.groupBy (\v1 v2 -> v1 ^. _y == v2 ^. _y) . Lis
                    delete ds b = b { poss = filter (not . (`elem` ds) . (+ pos b)) $ poss b }
 
                    dropped'' = filter (not . null . poss) dropped'
-                   dropped''' = map (freeFallBlock (stays ++ ground g)) dropped''
+
+                   (_, dropped''') = foldl freeFallBlock' (ground g, []) dropped''
                 in g { blocks = moving ++ dropped''' }
 
 
