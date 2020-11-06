@@ -30,13 +30,15 @@ data Block = Block
     , status :: BlockStatus             -- is the block moving
     } deriving (Show)
 
-iBlock = Block { pos = V2 5 5, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock", status = Moving }
-oBlock = Block { pos = V2 10 10, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Moving }
-tBlock = Block { pos = V2 15 15, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], name = "tblock", status = Moving }
-sBlock = Block { pos = V2 20 20, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock", status = Moving }
-zBlock = Block { pos = V2 25 25, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock", status = Moving }
-jBlock = Block { pos = V2 30 30, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock", status = Moving }
-lBlock = Block { pos = V2 8 (-1), poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving }
+iBlock = Block { pos = V2 5 4, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock", status = Moving }
+oBlock = Block { pos = V2 10 2, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Moving }
+tBlock = Block { pos = V2 15 5, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], name = "tblock", status = Moving }
+sBlock = Block { pos = V2 20 5, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock", status = Moving }
+zBlock = Block { pos = V2 25 5, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock", status = Moving }
+
+lBlock = Block { pos = V2 32 0, poss = [V2 1 (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving }
+jBlock = Block { pos = V2 10 45, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock", status = Dropped }
+
 testBlocks = [ Block { pos = V2 0 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
              , Block { pos = V2 2 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
              , Block { pos = V2 4 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
@@ -54,6 +56,24 @@ testBlocks = [ Block { pos = V2 0 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1
              , Block { pos = V2 30 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
              , Block { pos = V2 32 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
              , Block { pos = V2 34 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+
+             , Block { pos = V2 0 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 2 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 4 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 6 46, poss = [V2 0 0, V2 1 0, V2 2 0, V2 3 0], name = "iblock", status = Dropped }
+             , Block { pos = V2 6 47, poss = [V2 0 0, V2 1 0, V2 2 0, V2 3 0], name = "iblock", status = Dropped }
+             , Block { pos = V2 10 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 12 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 14 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 16 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 18 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 20 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 22 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 24 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 26 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 28 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 30 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
+             , Block { pos = V2 34 47, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
              ]
 
 data Game = Game
@@ -138,7 +158,7 @@ newBlock = id
 shrinkWall :: Game -> Game
 shrinkWall g = let grouped = List.groupBy (\v1 v2 -> v1 ^. _y == v2 ^. _y) . List.sortOn (^. _y) . buildWall $ g
                    dels = concat $ filter ((== cols g) . length) grouped
-                   stays = concat $ filter ((/= cols g) . length) grouped
+                   wall = ground g ++ concat (takeWhile ((/= cols g) . length) (reverse grouped))
 
                    (dropped, moving) = List.partition (\b -> status b == Dropped) $ blocks g
                    dropped' = map (delete dels) dropped
@@ -146,7 +166,7 @@ shrinkWall g = let grouped = List.groupBy (\v1 v2 -> v1 ^. _y == v2 ^. _y) . Lis
 
                    dropped'' = filter (not . null . poss) dropped'
 
-                   (_, dropped''') = foldl freeFallBlock' (ground g, []) dropped''
+                   (_, dropped''') = foldl freeFallBlock' (wall, []) dropped''
                 in g { blocks = moving ++ dropped''' }
 
 
