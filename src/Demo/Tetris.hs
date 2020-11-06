@@ -134,13 +134,15 @@ newBlock = id
 shrinkWall :: Game -> Game
 shrinkWall g = let grouped = List.groupBy (\v1 v2 -> v1 ^. _y == v2 ^. _y) . List.sortOn (^. _y) . buildWall $ g
                    dels = concat $ filter ((== cols g) . length) grouped
+                   stays = concat $ filter ((/= cols g) . length) grouped
 
                    (dropped, moving) = List.partition (\b -> status b == Dropped) $ blocks g
                    dropped' = map (delete dels) dropped
                    delete ds b = b { poss = filter (not . (`elem` ds) . (+ pos b)) $ poss b }
-                
+
                    dropped'' = filter (not . null . poss) dropped'
-                in g { blocks = moving ++ dropped'' }
+                   dropped''' = map (freeFallBlock (stays ++ ground g)) dropped''
+                in g { blocks = moving ++ dropped''' }
 
 
 tick :: Int -> Game -> Game
