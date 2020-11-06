@@ -7,6 +7,7 @@ import Demo.Tetris
     , initialGame
     , moveGame
     , tickGame
+    , freeFall
     , posNameMap
     )
 
@@ -61,6 +62,7 @@ handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = halt s
 handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ moveGame TetrisLeft s
 handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ moveGame TetrisRight s
 handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ moveGame TetrisUp s
+handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ freeFall s
 handleEvent s (AppEvent TetrisEvent) = continue (tickGame s)
 handleEvent s _ = continue s
 

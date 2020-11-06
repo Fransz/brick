@@ -5,8 +5,9 @@ module Demo.Tetris
     , Block(..)
     , TetrisDirection(..)
     , initialGame
-    , tickGame
     , moveGame
+    , tickGame
+    , freeFall
     , posNameMap
     ) where
 
@@ -35,7 +36,7 @@ tBlock = Block { pos = V2 15 15, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (
 sBlock = Block { pos = V2 20 20, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock", status = Moving }
 zBlock = Block { pos = V2 25 25, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock", status = Moving }
 jBlock = Block { pos = V2 30 30, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock", status = Moving }
-lBlock = Block { pos = V2 35 35, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving }
+lBlock = Block { pos = V2 8 (-1), poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving }
 testBlocks = [ Block { pos = V2 0 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
              , Block { pos = V2 2 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
              , Block { pos = V2 4 49, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Dropped }
@@ -95,6 +96,17 @@ moveCenter b d = b { pos = pos b + d }
 
 rotate :: Block -> Block
 rotate b = b { poss = map perp $ poss b }
+
+freeFall :: Game -> Game
+freeFall g = let wall = buildWall g ++ ground g
+                 moving = filter ((== Moving) . status) $ blocks g
+                 dropped = filter ((== Dropped) . status) $ blocks g
+              in g { wall = wall, blocks = map (freeFallBlock wall) moving ++ dropped }
+
+freeFallBlock :: [Pos] -> Block -> Block
+freeFallBlock w b = let b' = moveCenter b $ V2 0 1
+                        in if inWall b' w then b {status = Dropped} else freeFallBlock w b'
+
 
 inBounds :: Block -> Int -> Int -> Bool
 inBounds b min max = all (>= min) xs && all (< max) xs
