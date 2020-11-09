@@ -76,6 +76,7 @@ aMap = attrMap GV.defAttr [
   , (attrName "zblock", bg GV.brightCyan)
   , (attrName "jblock", bg GV.brightMagenta)
   , (attrName "lblock", bg GV.brightBlack)
+  , (attrName "wallblock", bg GV.yellow)
   ]
 
 theApp :: App Game TetrisEvent TETRISNAME
