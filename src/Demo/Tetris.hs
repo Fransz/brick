@@ -88,7 +88,7 @@ data Game = Game
 
 initialGame :: Game
 initialGame = Game
-    { cols = 36
+    { cols = 27
     , rows = 50
     , block = Just zBlock
     , wall = testWall
@@ -161,8 +161,8 @@ shrinkWall game = let sorted = List.sortOn ((^. _y) . brPos)  $ wall game
                       dels' = concat dels
                       belows = concat $ takeWhile ((/= cols game) . length) grouped
                       aboves = (wall game List.\\ dels') List.\\ belows
-                      aboves' = map mkBrick aboves
-                      mkBrick br = Brick (brPos br + V2 0 rows) (brName br)
+                      aboves' = map dropBrick aboves
+                      dropBrick br = Brick (brPos br + V2 0 rows) (brName br)
 
                       score = 10.0 ** fromIntegral (length (filter ((== cols game) . length) grouped))
                       wall' = belows ++ aboves'
