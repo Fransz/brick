@@ -31,9 +31,12 @@ data Block = Block
     } deriving (Show)
 
 data Brick = Brick
-    { pos :: Pos
-    , name :: String
+    { brPos :: Pos
+    , brName :: String
     } deriving (Show)
+
+instance Eq Brick where
+    (==) b1 b2 = brPos b1 == brPos b2
 
 iBlock = Block { pos = V2 5 4, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock" }
 oBlock = Block { pos = V2 10 2, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock" }
@@ -44,29 +47,41 @@ zBlock = Block { pos = V2 25 5, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0]
 lBlock = Block { pos = V2 32 0, poss = [V2 1 (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock" }
 jBlock = Block { pos = V2 10 45, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock" }
 
-testWall :: [Pos]
+testWall :: [Brick]
 testWall = [
-      V2 0 49,  V2 1 49,            V2 3 49,  V2 4 49,             V2 6 49,  V2 7 49,  V2 8 49,  V2 9 49
-    , V2 10 49, V2 11 49, V2 12 49, V2 13 49, V2 14 49, V2 15 49, V2 16 49, V2 17 49, V2 18 49, V2 19 49
-    , V2 20 49, V2 21 49, V2 22 49, V2 23 49, V2 24 49, V2 25 49, V2 26 49, V2 27 49, V2 28 49, V2 29 49
-    , V2 30 49, V2 31 49, V2 32 49, V2 33 49, V2 34 49, V2 35 49 
+      Brick (V2 0 49) "iblock",  Brick (V2 1 49) "iblock",                             Brick (V2 3 49) "iblock",  Brick (V2 4 49) "iblock"
+    ,                            Brick (V2 6 49) "iblock",  Brick (V2 7 49) "iblock",  Brick (V2 8 49) "iblock",  Brick (V2 9 49) "iblock"
+    , Brick (V2 10 49) "iblock", Brick (V2 11 49) "iblock", Brick (V2 12 49) "iblock", Brick (V2 13 49) "iblock", Brick (V2 14 49) "iblock"
+    , Brick (V2 15 49) "iblock", Brick (V2 16 49) "iblock", Brick (V2 17 49) "iblock", Brick (V2 18 49) "iblock", Brick (V2 19 49) "iblock"
+    , Brick (V2 20 49) "iblock", Brick (V2 21 49) "iblock", Brick (V2 22 49) "iblock", Brick (V2 23 49) "iblock", Brick (V2 24 49) "iblock"
+    , Brick (V2 25 49) "iblock", Brick (V2 26 49) "iblock", Brick (V2 27 49) "iblock", Brick (V2 28 49) "iblock", Brick (V2 29 49) "iblock"
+    , Brick (V2 30 49) "iblock", Brick (V2 31 49) "iblock", Brick (V2 32 49) "iblock", Brick (V2 33 49) "iblock", Brick (V2 34 49) "iblock"
+    , Brick (V2 35 49) "iblock"
 
-    , V2 0 48,  V2 1 48,  V2 2 48,  V2 3 48,  V2 4 48,            V2 6 48,  V2 7 48,  V2 8 48,  V2 9 48
-    , V2 10 48, V2 11 48, V2 12 48, V2 13 48, V2 14 48, V2 15 48, V2 16 48, V2 17 48, V2 18 48, V2 19 48
-    , V2 20 48, V2 21 48, V2 22 48, V2 23 48, V2 24 48, V2 25 48, V2 26 48, V2 27 48, V2 28 48, V2 29 48
-    , V2 30 48, V2 31 48, V2 32 48, V2 33 48, V2 34 48, V2 35 48 
+    , Brick (V2 0 48) "iblock",  Brick (V2 1 48) "oblock",  Brick (V2 2 48) "iblock",  Brick (V2 3 48) "iblock",  Brick (V2 4 48) "iblock"
+    ,                            Brick (V2 6 48) "zblock",  Brick (V2 7 48) "iblock",  Brick (V2 8 48) "iblock",  Brick (V2 9 48) "iblock"
+    , Brick (V2 10 48) "iblock", Brick (V2 11 48) "sblock", Brick (V2 12 48) "iblock", Brick (V2 13 48) "iblock", Brick (V2 14 48) "iblock"
+    , Brick (V2 15 48) "iblock", Brick (V2 16 48) "lblock", Brick (V2 17 48) "iblock", Brick (V2 18 48) "iblock", Brick (V2 19 48) "iblock"
+    , Brick (V2 20 48) "iblock", Brick (V2 21 48) "oblock", Brick (V2 22 48) "iblock", Brick (V2 23 48) "iblock", Brick (V2 24 48) "iblock"
+    , Brick (V2 25 48) "iblock", Brick (V2 26 48) "zblock", Brick (V2 27 48) "iblock", Brick (V2 28 48) "iblock", Brick (V2 29 48) "iblock"
+    , Brick (V2 30 48) "iblock", Brick (V2 31 48) "lblock", Brick (V2 32 48) "iblock", Brick (V2 33 48) "iblock", Brick (V2 34 48) "iblock"
+    , Brick (V2 35 48) "iblock"
 
-    , V2 0 47,  V2 1 47,  V2 2 47,  V2 3 47,  V2 4 47,            V2 6 47,  V2 7 47,  V2 8 47,  V2 9 47
-    , V2 10 47, V2 11 47, V2 12 47, V2 13 47, V2 14 47, V2 15 47, V2 16 47, V2 17 47, V2 18 47, V2 19 47
-    , V2 20 47, V2 21 47, V2 22 47, V2 23 47, V2 24 47, V2 25 47, V2 26 47, V2 27 47, V2 28 47, V2 29 47
-    , V2 30 47, V2 31 47, V2 32 47, V2 33 47, V2 34 47, V2 35 47 
+    , Brick (V2 0 47) "iblock",  Brick (V2 1 47) "iblock",  Brick (V2 2 47) "iblock",  Brick (V2 3 47) "iblock",  Brick (V2 4 47) "iblock"
+    ,                            Brick (V2 6 47) "iblock",  Brick (V2 7 47) "iblock",  Brick (V2 8 47) "iblock",  Brick (V2 9 47) "iblock"
+    , Brick (V2 10 47) "iblock", Brick (V2 11 47) "iblock", Brick (V2 12 47) "iblock", Brick (V2 13 47) "iblock", Brick (V2 14 47) "iblock"
+    , Brick (V2 15 47) "iblock", Brick (V2 16 47) "iblock", Brick (V2 17 47) "iblock", Brick (V2 18 47) "iblock", Brick (V2 19 47) "iblock"
+    , Brick (V2 20 47) "iblock", Brick (V2 21 47) "iblock", Brick (V2 22 47) "iblock", Brick (V2 23 47) "iblock", Brick (V2 24 47) "iblock"
+    , Brick (V2 25 47) "iblock", Brick (V2 26 47) "iblock", Brick (V2 27 47) "iblock", Brick (V2 28 47) "iblock", Brick (V2 29 47) "iblock"
+    , Brick (V2 30 47) "iblock", Brick (V2 31 47) "iblock", Brick (V2 32 47) "iblock", Brick (V2 33 47) "iblock", Brick (V2 34 47) "iblock"
+    , Brick (V2 35 47) "iblock"
     ]
 
 data Game = Game
     { cols :: Int
     , rows :: Int
     , block :: Maybe Block
-    , wall :: [Pos]
+    , wall :: [Brick]
     , gameover :: Bool
     , counter :: Int
     }  deriving (Show)
@@ -75,7 +90,7 @@ initialGame :: Game
 initialGame = Game
     { cols = 36
     , rows = 50
-    , block = Just iBlock
+    , block = Just zBlock
     , wall = testWall
     , gameover = False
     , counter = 0
@@ -109,7 +124,7 @@ freeFall game = case block game of
                     Nothing -> game
                     Just b -> game { wall = fallWall b (wall game) (ground game), block = Nothing }
 
-fallWall :: Block -> [Pos] -> [Pos] -> [Pos]
+fallWall :: Block -> [Brick] -> [Brick] -> [Brick]
 fallWall block wall ground = let block' = moveCenter block (V2 0 1)
                               in if inWall block' (wall ++ ground) then buildWall block wall else fallWall block' wall ground
 
@@ -117,14 +132,14 @@ inBounds :: Block -> Int -> Int -> Bool
 inBounds b min max = all (>= min) xs && all (< max) xs
     where xs = map ((^._x) . (+ pos b)) (poss b)
 
-buildWall :: Block -> [Pos] -> [Pos]
-buildWall block wall = wall ++ map (+ pos block) (poss block)
+buildWall :: Block -> [Brick] -> [Brick]
+buildWall block wall = wall ++ map (\p -> Brick (p + pos block) (name block)) (poss block)
 
-ground :: Game -> [Pos]
-ground g = map (\x -> V2 x (rows g)) $ take (cols g) . iterate (+1) $ 0
+ground :: Game -> [Brick]
+ground g = map (`Brick` "") $ take (cols g) . iterate (\v -> V2 (v ^. _x + 1) (rows g)) $ V2 0 0
 
-inWall :: Block -> [Pos] -> Bool
-inWall b w = any ((`elem` w) . (+ pos b)) (poss b)
+inWall :: Block -> [Brick] -> Bool
+inWall b w = any ((`elem` map brPos w) . (+ pos b)) (poss b)
 
 tickGame :: Game -> Game
 tickGame game
@@ -139,13 +154,15 @@ isGameOver :: Game -> Bool
 isGameOver game = False
 
 shrinkWall :: Game -> Game
-shrinkWall game = let grouped = reverse . List.groupBy (\v1 v2 -> v1 ^. _y == v2 ^. _y) . List.sortOn (^. _y) $ wall game
+shrinkWall game = let sorted = List.sortOn ((^. _y) . brPos)  $ wall game
+                      grouped = reverse . List.groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) $ sorted
                       dels = filter ((== cols game) . length) grouped
                       rows = length dels
                       dels' = concat dels
                       belows = concat $ takeWhile ((/= cols game) . length) grouped
                       aboves = (wall game List.\\ dels') List.\\ belows
-                      aboves' = map (+ V2 0 rows) aboves
+                      aboves' = map mkBrick aboves
+                      mkBrick br = Brick (brPos br + V2 0 rows) (brName br)
 
                       score = 10.0 ** fromIntegral (length (filter ((== cols game) . length) grouped))
                       wall' = belows ++ aboves'
@@ -162,5 +179,5 @@ posNameMap game = Map.fromList (maybe []  posNameTpl (block game) ++ posNameWall
 posNameTpl :: Block -> [(Pos, String)]
 posNameTpl b = map ((, name b) . (+ pos b)) (poss b)
 
-posNameWall :: [Pos] -> [(Pos, String)]
-posNameWall = map (, "wallblock")
+posNameWall :: [Brick] -> [(Pos, String)]
+posNameWall = map (\b -> (brPos b, brName b))
