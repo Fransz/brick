@@ -4,7 +4,7 @@ where
 import Demo.Tetris
     ( Game(..)
     , TetrisDirection(..)
-    , initialGame
+    , initGame
     , moveGame
     , tickGame
     , freeFall
@@ -99,4 +99,6 @@ startApp = do
     let buildVty = GV.mkVty GV.defaultConfig
     initialVty <- buildVty
 
-    customMain initialVty buildVty (Just eventChannel) theApp initialGame
+    state <- initGame     
+
+    customMain initialVty buildVty (Just eventChannel) theApp state

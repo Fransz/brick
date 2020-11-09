@@ -4,7 +4,7 @@ module Demo.Tetris
     ( Game (..)
     , Block(..)
     , TetrisDirection(..)
-    , initialGame
+    , initGame
     , moveGame
     , tickGame
     , freeFall
@@ -16,6 +16,7 @@ import Lens.Micro ((^.))
 import qualified Data.Map as Map (Map, fromList)
 import qualified Data.List as List (groupBy, sortOn, (\\))
 import qualified Data.Maybe as Maybe (isNothing)
+import qualified System.Random as Random (newStdGen, StdGen, Random(randomR))
 
 type Pos = V2 Int
 
@@ -38,14 +39,13 @@ data Brick = Brick
 instance Eq Brick where
     (==) b1 b2 = brPos b1 == brPos b2
 
-iBlock = Block { pos = V2 5 4, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock" }
-oBlock = Block { pos = V2 10 2, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock" }
-tBlock = Block { pos = V2 15 5, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], name = "tblock" }
-sBlock = Block { pos = V2 20 5, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock" }
-zBlock = Block { pos = V2 25 5, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock" }
-
-lBlock = Block { pos = V2 32 0, poss = [V2 1 (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock" }
-jBlock = Block { pos = V2 10 45, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock" }
+iBlock = Block { pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock" }
+oBlock = Block { pos = V2 0 0, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock" }
+tBlock = Block { pos = V2 0 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], name = "tblock" }
+sBlock = Block { pos = V2 0 0, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock" }
+zBlock = Block { pos = V2 0 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock" }
+lBlock = Block { pos = V2 0 0, poss = [V2 1 (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock" }
+jBlock = Block { pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock" }
 
 testWall :: [Brick]
 testWall = [
@@ -84,16 +84,18 @@ data Game = Game
     , wall :: [Brick]
     , gameover :: Bool
     , counter :: Int
+    , gen :: Random.StdGen
     }  deriving (Show)
 
 initialGame :: Game
 initialGame = Game
     { cols = 27
     , rows = 50
-    , block = Just zBlock
-    , wall = testWall
+    , block = Nothing
+    , wall = []
     , gameover = False
     , counter = 0
+    , gen = undefined
 }
 
 
@@ -145,10 +147,14 @@ tickGame :: Game -> Game
 tickGame game
   | isGameOver game = game { gameover = True }
   | Maybe.isNothing (block game) = newBlock . shrinkWall $ game
-  | otherwise = tick 1 . newBlock . shrinkWall . moveGame TetrisDown $ game
+  | otherwise = tick 1 . shrinkWall . moveGame TetrisDown $ game
 
 newBlock :: Game -> Game
-newBlock = id
+newBlock game = let (pos, g') = Random.randomR (V2 0 0 , V2 (cols game - 1) 0) (gen game)
+                    (idx, g'') = Random.randomR (0, 6) g'
+                    blocks = [iBlock {pos = pos}, oBlock {pos = pos}, tBlock {pos = pos}, sBlock {pos = pos}, 
+                              zBlock {pos = pos}, lBlock {pos = pos}, jBlock {pos = pos}]
+                 in game {block = Just (blocks !! idx), gen = g''}
 
 isGameOver :: Game -> Bool
 isGameOver game = False
@@ -181,3 +187,7 @@ posNameTpl b = map ((, name b) . (+ pos b)) (poss b)
 
 posNameWall :: [Brick] -> [(Pos, String)]
 posNameWall = map (\b -> (brPos b, brName b))
+
+initGame :: IO Game
+initGame = do g <- Random.newStdGen
+              return $ newBlock initialGame {gen = g}
