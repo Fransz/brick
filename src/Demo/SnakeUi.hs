@@ -2,7 +2,7 @@ module Demo.SnakeUi (startApp)
 where
 
 import Demo.Snake
-    (initialState
+    (initState
     , SnakeState(..)
     , SnakeMove(..)
     , Pos
@@ -94,4 +94,5 @@ startApp = do
     let buildVty = GV.mkVty GV.defaultConfig
     initialVty <- buildVty
 
-    customMain initialVty buildVty (Just eventChannel) theApp initialState
+    st <- initState
+    customMain initialVty buildVty (Just eventChannel) theApp st

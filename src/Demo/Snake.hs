@@ -2,14 +2,14 @@ module Demo.Snake
     ( SnakeState (..)
     , SnakeMove (..)
     , Pos
-    , initialState
+    , initState
     , addMove
     , newSnakeState
     ) where
 
 import Lens.Micro ((^.))
 import Linear.V2 (V2 (..), _x, _y)
-import System.Random (randomRs, mkStdGen)
+import System.Random (randomRs, newStdGen)
 
 type Pos = V2 Int
 
@@ -38,7 +38,7 @@ initialState = SnakeState
     , gameover = False
     , counter = 0
     , appleCount = 0
-    , rndApples = randomRs (V2 0 0, V2 50 50)(mkStdGen 1)
+    , rndApples = []
 }
 
 newSnakeState :: SnakeState -> SnakeState
@@ -89,3 +89,9 @@ addMove s m | m `elem` [SnakeUp, SnakeDown] && cur `elem` [SnakeUp, SnakeDown] =
             | m `elem` [SnakeLeft, SnakeRight] &&  cur `elem` [SnakeLeft, SnakeRight] = s
             | m `elem` [SnakeLeft, SnakeRight] = s {direction = m}
     where cur = direction s
+
+
+initState :: IO SnakeState
+initState = do g <- newStdGen
+               return initialState { rndApples = randomRs (V2 0 0, V2 (cols initialState - 1) (rows initialState - 1)) g}
+
