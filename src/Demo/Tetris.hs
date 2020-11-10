@@ -12,9 +12,9 @@ module Demo.Tetris
   )
 where
 
-import qualified Data.List as List (groupBy, sortOn, (\\))
+import Data.List as List (groupBy, sortOn, (\\))
 import qualified Data.Map as Map (Map, fromList)
-import qualified Data.Maybe as Maybe (isNothing)
+import Data.Maybe as Maybe (isNothing)
 import Lens.Micro ((^.))
 import Linear.V2 (V2 (..), perp, _x, _y)
 import qualified System.Random as Random (Random (randomR), StdGen, newStdGen)
@@ -26,9 +26,9 @@ data TetrisDirection = TetrisLeft | TetrisRight | TetrisUp | TetrisDown deriving
 data BlockStatus = Moving | Dropped deriving (Show, Eq)
 
 data Block = Block
-  { pos :: Pos, -- Absolute position of blocks center.
-    poss :: [Pos], -- Relative positions (from center) of blocks constituents.
-    name :: String -- Blocks name. For widget attributes.
+  { pos :: Pos,
+    poss :: [Pos],
+    name :: String
   }
   deriving (Show)
 
@@ -51,117 +51,9 @@ sBlock = Block {pos = V2 0 0, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], 
 
 zBlock = Block {pos = V2 0 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock"}
 
-lBlock = Block {pos = V2 0 0, poss = [V2 1 (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock"}
+lBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock"}
 
 jBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock"}
-
-testWall :: [Brick]
-testWall =
-  [ Brick (V2 0 49) "iblock",
-    Brick (V2 1 49) "iblock",
-    Brick (V2 3 49) "iblock",
-    Brick (V2 4 49) "iblock",
-    Brick (V2 6 49) "iblock",
-    Brick (V2 7 49) "iblock",
-    Brick (V2 8 49) "iblock",
-    Brick (V2 9 49) "iblock",
-    Brick (V2 10 49) "iblock",
-    Brick (V2 11 49) "iblock",
-    Brick (V2 12 49) "iblock",
-    Brick (V2 13 49) "iblock",
-    Brick (V2 14 49) "iblock",
-    Brick (V2 15 49) "iblock",
-    Brick (V2 16 49) "iblock",
-    Brick (V2 17 49) "iblock",
-    Brick (V2 18 49) "iblock",
-    Brick (V2 19 49) "iblock",
-    Brick (V2 20 49) "iblock",
-    Brick (V2 21 49) "iblock",
-    Brick (V2 22 49) "iblock",
-    Brick (V2 23 49) "iblock",
-    Brick (V2 24 49) "iblock",
-    Brick (V2 25 49) "iblock",
-    Brick (V2 26 49) "iblock",
-    Brick (V2 27 49) "iblock",
-    Brick (V2 28 49) "iblock",
-    Brick (V2 29 49) "iblock",
-    Brick (V2 30 49) "iblock",
-    Brick (V2 31 49) "iblock",
-    Brick (V2 32 49) "iblock",
-    Brick (V2 33 49) "iblock",
-    Brick (V2 34 49) "iblock",
-    Brick (V2 35 49) "iblock",
-    Brick (V2 0 48) "iblock",
-    Brick (V2 1 48) "oblock",
-    Brick (V2 2 48) "iblock",
-    Brick (V2 3 48) "iblock",
-    Brick (V2 4 48) "iblock",
-    Brick (V2 6 48) "zblock",
-    Brick (V2 7 48) "iblock",
-    Brick (V2 8 48) "iblock",
-    Brick (V2 9 48) "iblock",
-    Brick (V2 10 48) "iblock",
-    Brick (V2 11 48) "sblock",
-    Brick (V2 12 48) "iblock",
-    Brick (V2 13 48) "iblock",
-    Brick (V2 14 48) "iblock",
-    Brick (V2 15 48) "iblock",
-    Brick (V2 16 48) "lblock",
-    Brick (V2 17 48) "iblock",
-    Brick (V2 18 48) "iblock",
-    Brick (V2 19 48) "iblock",
-    Brick (V2 20 48) "iblock",
-    Brick (V2 21 48) "oblock",
-    Brick (V2 22 48) "iblock",
-    Brick (V2 23 48) "iblock",
-    Brick (V2 24 48) "iblock",
-    Brick (V2 25 48) "iblock",
-    Brick (V2 26 48) "zblock",
-    Brick (V2 27 48) "iblock",
-    Brick (V2 28 48) "iblock",
-    Brick (V2 29 48) "iblock",
-    Brick (V2 30 48) "iblock",
-    Brick (V2 31 48) "lblock",
-    Brick (V2 32 48) "iblock",
-    Brick (V2 33 48) "iblock",
-    Brick (V2 34 48) "iblock",
-    Brick (V2 35 48) "iblock",
-    Brick (V2 0 47) "iblock",
-    Brick (V2 1 47) "iblock",
-    Brick (V2 2 47) "iblock",
-    Brick (V2 3 47) "iblock",
-    Brick (V2 4 47) "iblock",
-    Brick (V2 6 47) "iblock",
-    Brick (V2 7 47) "iblock",
-    Brick (V2 8 47) "iblock",
-    Brick (V2 9 47) "iblock",
-    Brick (V2 10 47) "iblock",
-    Brick (V2 11 47) "iblock",
-    Brick (V2 12 47) "iblock",
-    Brick (V2 13 47) "iblock",
-    Brick (V2 14 47) "iblock",
-    Brick (V2 15 47) "iblock",
-    Brick (V2 16 47) "iblock",
-    Brick (V2 17 47) "iblock",
-    Brick (V2 18 47) "iblock",
-    Brick (V2 19 47) "iblock",
-    Brick (V2 20 47) "iblock",
-    Brick (V2 21 47) "iblock",
-    Brick (V2 22 47) "iblock",
-    Brick (V2 23 47) "iblock",
-    Brick (V2 24 47) "iblock",
-    Brick (V2 25 47) "iblock",
-    Brick (V2 26 47) "iblock",
-    Brick (V2 27 47) "iblock",
-    Brick (V2 28 47) "iblock",
-    Brick (V2 29 47) "iblock",
-    Brick (V2 30 47) "iblock",
-    Brick (V2 31 47) "iblock",
-    Brick (V2 32 47) "iblock",
-    Brick (V2 33 47) "iblock",
-    Brick (V2 34 47) "iblock",
-    Brick (V2 35 47) "iblock"
-  ]
 
 data Game = Game
   { cols :: Int,
@@ -186,13 +78,17 @@ initialGame =
       gen = undefined
     }
 
+--
+-- Move the block of a game if there is one.
 moveGame :: TetrisDirection -> Game -> Game
 moveGame dir game = case block game of
   Nothing -> game
   Just block -> case moveBlock dir game block of
-    Nothing -> game {block = Nothing, wall = buildWall block (wall game)}
+    Nothing -> game {block = Nothing, wall = addToWall block (wall game)}
     Just block' -> game {block = Just block'}
 
+--
+-- Move a block. Returning Nothing if the move was not posible
 moveBlock :: TetrisDirection -> Game -> Block -> Maybe Block
 moveBlock dir game block =
   let block' = case dir of
@@ -204,42 +100,69 @@ moveBlock dir game block =
         then Nothing
         else if inBounds block' 0 (cols game) then Just block' else Just block
 
+--
+-- Move the center position of a block.
 moveCenter :: Block -> V2 Int -> Block
 moveCenter b d = b {pos = pos b + d}
 
+--
+-- rotate a block.
 rotate :: Block -> Block
 rotate b = b {poss = map perp $ poss b}
 
+--
+-- Drop the block of a game, if there is one, to the wall.
 freeFall :: Game -> Game
 freeFall game = case block game of
   Nothing -> game
-  Just b -> game {wall = fallWall b (wall game) (ground game), block = Nothing}
+  Just b ->
+    let block' = fallWall b $ wall game ++ ground game
+     in game {wall = addToWall block' $ wall game, block = Nothing}
 
-fallWall :: Block -> [Brick] -> [Brick] -> [Brick]
-fallWall block wall ground =
+--
+-- drop a block to a wall. returning the block in its last position.
+fallWall :: Block -> [Brick] -> Block
+fallWall block wall =
   let block' = moveCenter block (V2 0 1)
-   in if inWall block' (wall ++ ground) then buildWall block wall else fallWall block' wall ground
+   in if inWall block' wall then block else fallWall block' wall
 
+--
+-- add a block to a wall
+addToWall :: Block -> [Brick] -> [Brick]
+addToWall block wall = wall ++ map (\p -> Brick (p + pos block) (name block)) (poss block)
+
+--
+-- Calculate the ground of the game.
+ground :: Game -> [Brick]
+ground game = map (`Brick` "") $ take (cols game) . iterate (\v -> V2 (v ^. _x + 1) (rows game)) $ V2 0 (cols game)
+
+--
+-- Check if a block is in the field.
 inBounds :: Block -> Int -> Int -> Bool
 inBounds b min max = all (>= min) xs && all (< max) xs
   where
     xs = map ((^. _x) . (+ pos b)) (poss b)
 
-buildWall :: Block -> [Brick] -> [Brick]
-buildWall block wall = wall ++ map (\p -> Brick (p + pos block) (name block)) (poss block)
-
-ground :: Game -> [Brick]
-ground g = map (`Brick` "") $ take (cols g) . iterate (\v -> V2 (v ^. _x + 1) (rows g)) $ V2 0 0
-
+--
+-- Check if a block is in the wall.
 inWall :: Block -> [Brick] -> Bool
 inWall b w = any ((`elem` map brPos w) . (+ pos b)) (poss b)
 
+--
+-- periodic action.
 tickGame :: Game -> Game
 tickGame game
   | isGameOver game = game {gameover = True}
-  | Maybe.isNothing (block game) = newBlock . shrinkWall $ game
-  | otherwise = tick 1 . shrinkWall . moveGame TetrisDown $ game
+  | isNothing (block game) = newBlock . collapseWall $ game
+  | otherwise = tick 1 . collapseWall . moveGame TetrisDown $ game
 
+--
+-- ticker.
+tick :: Int -> Game -> Game
+tick i g = g {counter = counter g + i}
+
+--
+-- Create a new random block.
 newBlock :: Game -> Game
 newBlock game =
   let (pos, g') = Random.randomR (V2 0 0, V2 (cols game - 1) 0) (gen game)
@@ -255,27 +178,28 @@ newBlock game =
         ]
    in game {block = Just (blocks !! idx), gen = g''}
 
+--
+-- Check if the game is over.
 isGameOver :: Game -> Bool
 isGameOver game = False
 
-shrinkWall :: Game -> Game
-shrinkWall game =
-  let sorted = List.sortOn ((^. _y) . brPos) $ wall game
-      grouped = reverse . List.groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) $ sorted
+--
+-- collapse the wall.
+collapseWall :: Game -> Game
+collapseWall game =
+  let sorted = sortOn ((^. _y) . brPos) $ wall game
+      grouped = reverse . groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) $ sorted
       dels = filter ((== cols game) . length) grouped
       rows = length dels
       dels' = concat dels
       belows = concat $ takeWhile ((/= cols game) . length) grouped
-      aboves = (wall game List.\\ dels') List.\\ belows
+      aboves = (wall game \\ dels') \\ belows
       aboves' = map dropBrick aboves
       dropBrick br = Brick (brPos br + V2 0 rows) (brName br)
 
       score = 10.0 ** fromIntegral (length (filter ((== cols game) . length) grouped))
       wall' = belows ++ aboves'
    in game {wall = wall'}
-
-tick :: Int -> Game -> Game
-tick i g = g {counter = counter g + i}
 
 -- Map of all blocks, all positions with the blocks attr.
 posNameMap :: Game -> Map.Map Pos String
@@ -285,9 +209,12 @@ posNameMap game = Map.fromList (maybe [] posNameTpl (block game) ++ posNameWall 
 posNameTpl :: Block -> [(Pos, String)]
 posNameTpl b = map ((,name b) . (+ pos b)) (poss b)
 
+-- List off absolute positions of bricks, in a tuple with the bricks attrName
 posNameWall :: [Brick] -> [(Pos, String)]
 posNameWall = map (\b -> (brPos b, brName b))
 
+--
+-- Initialize the game. I.e. create a stdGen
 initGame :: IO Game
 initGame = do
   g <- Random.newStdGen
