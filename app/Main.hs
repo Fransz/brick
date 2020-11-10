@@ -9,15 +9,13 @@ import qualified Brick.Widgets.Border.Style as BWBS
 import qualified Brick.Widgets.Center as BWC
 import qualified Brick.Widgets.Core as BW
 import qualified Brick.Widgets.List as BL
-
 import Control.Monad (void)
 import qualified Data.Vector as DV (fromList)
-import qualified Graphics.Vty as GV
-
 import qualified Demo.CustomEvent as DC
-import qualified Demo.SnakeUi as SU
 import qualified Demo.HelloWorld as HW
+import qualified Demo.SnakeUi as SU
 import qualified Demo.TetrisUi as DT
+import qualified Graphics.Vty as GV
 
 --
 -- MenuState  a vector of strings
