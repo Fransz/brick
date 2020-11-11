@@ -93,7 +93,7 @@ startApp = do
   _ <- forkIO $
     forever $ do
       writeBChan eventChannel TetrisEvent
-      threadDelay 100000
+      threadDelay 400000
 
   let buildVty = GV.mkVty GV.defaultConfig
   initialVty <- buildVty

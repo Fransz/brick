@@ -12,9 +12,10 @@ module Demo.Tetris
   )
 where
 
-import Data.List as List (groupBy, sortOn, (\\))
+import Data.List as List (groupBy, nubBy, sortOn, (\\))
 import qualified Data.Map as Map (Map, fromList)
 import Data.Maybe as Maybe (isNothing)
+import qualified Data.Ord (Down (..))
 import Lens.Micro ((^.))
 import Linear.V2 (V2 (..), perp, _x, _y)
 import qualified System.Random as Random (Random (randomR), StdGen, newStdGen)
@@ -62,6 +63,7 @@ data Game = Game
     wall :: [Brick],
     gameover :: Bool,
     counter :: Int,
+    score :: Int,
     gen :: Random.StdGen
   }
   deriving (Show)
@@ -75,6 +77,7 @@ initialGame =
       wall = [],
       gameover = False,
       counter = 0,
+      score = 0,
       gen = undefined
     }
 
@@ -134,7 +137,7 @@ addToWall block wall = wall ++ map (\p -> Brick (p + pos block) (name block)) (p
 --
 -- Calculate the ground of the game.
 ground :: Game -> [Brick]
-ground game = map (`Brick` "") $ take (cols game) . iterate (\v -> V2 (v ^. _x + 1) (rows game)) $ V2 0 (cols game)
+ground game = map (`Brick` "") $ take (cols game) . iterate (\v -> V2 (v ^. _x + 1) (rows game)) $ V2 0 (rows game)
 
 --
 -- Check if a block is in the field.
@@ -184,31 +187,38 @@ isGameOver :: Game -> Bool
 isGameOver game = False
 
 --
--- collapse the wall.
+-- remove full rows from the wall, increase score.
 collapseWall :: Game -> Game
 collapseWall game =
-  let sorted = sortOn ((^. _y) . brPos) $ wall game
-      grouped = reverse . groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) $ sorted
-      dels = filter ((== cols game) . length) grouped
-      rows = length dels
-      dels' = concat dels
-      belows = concat $ takeWhile ((/= cols game) . length) grouped
-      aboves = (wall game \\ dels') \\ belows
+  let (dels, aboves, belows) = analyseWall game
+      rowCnt = length $ nubBy (\b1 b2 -> (^. _y) (brPos b1) == (^. _y) (brPos b2)) dels
+
+      dropBrick br = br {brPos = brPos br + V2 0 rowCnt}
       aboves' = map dropBrick aboves
-      dropBrick br = Brick (brPos br + V2 0 rows) (brName br)
+   in game {wall = belows ++ aboves', score = score game + 10 ^ rowCnt}
 
-      score = 10.0 ** fromIntegral (length (filter ((== cols game) . length) grouped))
-      wall' = belows ++ aboves'
-   in game {wall = wall'}
+--
+-- analyse the wall into full rows, rows below full rows, rows above fullrows.
+analyseWall :: Game -> ([Brick], [Brick], [Brick])
+analyseWall game =
+  let sorted = sortOn (Data.Ord.Down . (^. _y) . brPos) $ wall game
+      grouped = groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) sorted
+      fulls = concat . filter ((== cols game) . length) $ grouped
+      belows = concat . takeWhile ((/= cols game) . length) $ grouped
+      aboves = (wall game \\ fulls) \\ belows
+   in (fulls, aboves, belows)
 
+--
 -- Map of all blocks, all positions with the blocks attr.
 posNameMap :: Game -> Map.Map Pos String
 posNameMap game = Map.fromList (maybe [] posNameTpl (block game) ++ posNameWall (wall game))
 
+--
 -- List off absolute positions of a block, in a tuple with the blocks attrName
 posNameTpl :: Block -> [(Pos, String)]
 posNameTpl b = map ((,name b) . (+ pos b)) (poss b)
 
+--
 -- List off absolute positions of bricks, in a tuple with the bricks attrName
 posNameWall :: [Brick] -> [(Pos, String)]
 posNameWall = map (\b -> (brPos b, brName b))
