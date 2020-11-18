@@ -29,7 +29,8 @@ data BlockStatus = Moving | Dropped deriving (Show, Eq)
 data Block = Block
   { pos :: Pos,
     poss :: [Pos],
-    name :: String
+    name :: String,
+    status :: BlockStatus
   }
   deriving (Show)
 
@@ -42,24 +43,24 @@ data Brick = Brick
 instance Eq Brick where
   (==) b1 b2 = brPos b1 == brPos b2
 
-iBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock"}
+iBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock", status = Moving}
 
-oBlock = Block {pos = V2 0 0, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock"}
+oBlock = Block {pos = V2 0 0, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Moving}
 
-tBlock = Block {pos = V2 0 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], name = "tblock"}
+tBlock = Block {pos = V2 0 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], name = "tblock", status = Moving}
 
-sBlock = Block {pos = V2 0 0, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock"}
+sBlock = Block {pos = V2 0 0, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock", status = Moving}
 
-zBlock = Block {pos = V2 0 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock"}
+zBlock = Block {pos = V2 0 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock", status = Moving}
 
-lBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock"}
+lBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving}
 
-jBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock"}
+jBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock", status = Moving}
 
 data Game = Game
   { cols :: Int,
     rows :: Int,
-    block :: Maybe Block,
+    block :: Block,
     wall :: [Brick],
     gameover :: Bool,
     counter :: Int,
@@ -73,7 +74,7 @@ initialGame =
   Game
     { cols = 16,
       rows = 20,
-      block = Nothing,
+      block = lBlock,
       wall = [],
       gameover = False,
       counter = 0,
@@ -84,24 +85,21 @@ initialGame =
 --
 -- Move the block of a game if there is one.
 moveGame :: TetrisDirection -> Game -> Game
-moveGame dir game = case block game of
-  Nothing -> game
-  Just block -> case moveBlock dir game block of
-    Nothing -> game {block = Nothing, wall = addToWall block (wall game)}
-    Just block' -> game {block = Just block'}
+moveGame dir game = game {block = setDropped . keepFromWall . keepInBounds . moveBlock dir $ prev}
+  where
+    setDropped b = if dir == TetrisDown && inWall b (wall game ++ ground game) then prev {status = Dropped} else b
+    keepInBounds b = if dir /= TetrisDown && not (inBounds b 0 (cols game)) then prev else b
+    keepFromWall b = if dir /= TetrisDown && inWall b (wall game ++ ground game) then prev else b
+    prev = block game
 
 --
 -- Move a block. Returning Nothing if the move was not posible
-moveBlock :: TetrisDirection -> Game -> Block -> Maybe Block
-moveBlock dir game block =
-  let block' = case dir of
-        TetrisLeft -> moveCenter block (V2 (-1) 0)
-        TetrisRight -> moveCenter block (V2 1 0)
-        TetrisDown -> moveCenter block (V2 0 1)
-        TetrisUp -> rotate block
-   in if inWall block' $ wall game ++ ground game
-        then Nothing
-        else if inBounds block' 0 (cols game) then Just block' else Just block
+moveBlock :: TetrisDirection -> Block -> Block
+moveBlock dir block = case dir of
+  TetrisLeft -> moveCenter block (V2 (-1) 0)
+  TetrisRight -> moveCenter block (V2 1 0)
+  TetrisDown -> moveCenter block (V2 0 1)
+  TetrisUp -> rotate block
 
 --
 -- Move the center position of a block.
@@ -114,13 +112,11 @@ rotate :: Block -> Block
 rotate b = b {poss = map perp $ poss b}
 
 --
--- Drop the block of a game, if there is one, to the wall.
+-- Drop the block of a game, to the wall.
 freeFall :: Game -> Game
-freeFall game = case block game of
-  Nothing -> game
-  Just b ->
-    let block' = fallWall b $ wall game ++ ground game
-     in game {wall = addToWall block' $ wall game, block = Nothing}
+freeFall game = case status $ block game of
+  Dropped -> game
+  Moving -> freeFall $ moveGame TetrisDown game
 
 --
 -- drop a block to a wall. returning the block in its last position.
@@ -131,8 +127,12 @@ fallWall block wall =
 
 --
 -- add a block to a wall
-addToWall :: Block -> [Brick] -> [Brick]
-addToWall block wall = wall ++ map (\p -> Brick (p + pos block) (name block)) (poss block)
+buildWall :: Game -> Game
+buildWall game = if status bl == Dropped then game {wall = w ++ map toBrick (poss bl)} else game
+  where
+    w = wall game
+    bl = block game
+    toBrick p = Brick (p + pos bl) (name bl)
 
 --
 -- Calculate the ground of the game.
@@ -156,8 +156,8 @@ inWall b w = any ((`elem` map brPos w) . (+ pos b)) (poss b)
 tickGame :: Game -> Game
 tickGame game
   | isGameOver game = game {gameover = True}
-  | isNothing (block game) = newBlock . collapseWall $ game
-  | otherwise = tick 1 . collapseWall . moveGame TetrisDown $ game
+  | status (block game) == Dropped = newBlock . collapseWall . buildWall $ game
+  | otherwise = tick 1 . collapseWall . buildWall . moveGame TetrisDown $ game
 
 --
 -- ticker.
@@ -171,7 +171,7 @@ newBlock game =
   let (pos, g') = Random.randomR (V2 0 0, V2 (cols game - 1) 0) (gen game)
       (idx, g'') = Random.randomR (0, 6) g'
       block = ([iBlock, oBlock, tBlock, sBlock, zBlock, lBlock, jBlock] !! idx) {pos = pos}
-   in if inBounds block 0 (cols game) then game {block = Just block, gen = g''} else newBlock game {gen = g''}
+   in if inBounds block 0 (cols game) then game {block = block, gen = g''} else newBlock game {gen = g''}
 
 --
 -- Check if the game is over.
@@ -203,7 +203,7 @@ analyseWall game =
 --
 -- Map of all blocks, all positions with the blocks attr.
 posNameMap :: Game -> Map.Map Pos String
-posNameMap game = Map.fromList (maybe [] posNameTpl (block game) ++ posNameWall (wall game))
+posNameMap game = Map.fromList (posNameTpl (block game) ++ posNameWall (wall game))
 
 --
 -- List off absolute positions of a block, in a tuple with the blocks attrName
