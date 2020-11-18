@@ -191,27 +191,21 @@ isGameOver g = not (null w) && ((^. _y) . brPos . head $ w) <= 0
   where
     w = sortOn ((^. _y) . brPos) $ wall g
 
---
--- remove full rows from the wall, increase score.
 collapseWall :: Game -> Game
-collapseWall g =
-  let (dels, aboves, belows) = analyseWall g
-      rowCnt = length $ nubBy (\b1 b2 -> (^. _y) (brPos b1) == (^. _y) (brPos b2)) dels
+collapseWall g = g {wall = collapseWall' (cols g) (groupWall $ wall g)}
 
-      dropBrick br = br {brPos = brPos br + V2 0 rowCnt}
-      aboves' = map dropBrick aboves
-   in g {wall = belows ++ aboves', score = score g + 10 ^ rowCnt}
+collapseWall' :: Int -> [[Brick]] -> [Brick]
+collapseWall' full l
+  | [] <- l = []
+  | (r : rs) <- l, length r == full = collapseWall' full (map (map dropBrick) rs)
+  | (r : rs) <- l = r ++ collapseWall' full rs
+  where
+    dropBrick br = br {brPos = brPos br + V2 0 1}
 
---
--- analyse the wall into full rows, rows below full rows, rows above fullrows.
-analyseWall :: Game -> ([Brick], [Brick], [Brick])
-analyseWall g =
-  let sorted = sortOn (Data.Ord.Down . (^. _y) . brPos) $ wall g
-      grouped = groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) sorted
-      fulls = concat . filter ((== cols g) . length) $ grouped
-      belows = concat . takeWhile ((/= cols g) . length) $ grouped
-      aboves = (wall g \\ fulls) \\ belows
-   in (fulls, aboves, belows)
+groupWall :: [Brick] -> [[Brick]]
+groupWall w =
+  let sortWall = sortOn (Data.Ord.Down . (^. _y) . brPos) w
+   in groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) sortWall
 
 --
 -- Map of all blocks, all positions with the blocks attr.
