@@ -12,7 +12,7 @@ module Demo.Tetris
   )
 where
 
-import Data.List as List (groupBy, nubBy, sortOn, (\\))
+import Data.List as List (groupBy, sortOn)
 import qualified Data.Map as Map (Map, fromList)
 import qualified Data.Ord (Down (..))
 import Lens.Micro ((^.))
@@ -63,9 +63,9 @@ jBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], 
  -
  - testRow2 = map (`Brick` "oblock") $ (take 3 . makeRow $ V2 0 18) ++ (take 3 . makeRow $ V2 5 18) ++ (take 7 . makeRow $ V2 9 18)
  -
- - testRow3 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 17) ++ (take 3 . makeRow $ V2 9 17) ++ (take 3 . makeRow $ V2 13 17)
+ - testRow3 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 17) ++ (take 7 . makeRow $ V2 9 17)
  -
- - testRow4 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 16) ++ (take 7 . makeRow $ V2 9 16)
+ - testRow4 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 16) ++ (take 3 . makeRow $ V2 9 16) ++ (take 3 . makeRow $ V2 13 16)
  -
  - testRow5 = map (`Brick` "oblock") $ (take 4 . makeRow $ V2 2 15) ++ (take 4 . makeRow $ V2 12 15)
  -
@@ -191,9 +191,13 @@ isGameOver g = not (null w) && ((^. _y) . brPos . head $ w) <= 0
   where
     w = sortOn ((^. _y) . brPos) $ wall g
 
+--
+-- Collapse wall
 collapseWall :: Game -> Game
 collapseWall g = g {wall = collapseWall' (cols g) (groupWall $ wall g)}
 
+--
+-- Remove full rows from the wall.
 collapseWall' :: Int -> [[Brick]] -> [Brick]
 collapseWall' full l
   | [] <- l = []
@@ -202,6 +206,8 @@ collapseWall' full l
   where
     dropBrick br = br {brPos = brPos br + V2 0 1}
 
+--
+-- grouped bricks by row number. Highest rowNumber first.
 groupWall :: [Brick] -> [[Brick]]
 groupWall w =
   let sortWall = sortOn (Data.Ord.Down . (^. _y) . brPos) w
