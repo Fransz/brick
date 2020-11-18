@@ -170,16 +170,8 @@ newBlock :: Game -> Game
 newBlock game =
   let (pos, g') = Random.randomR (V2 0 0, V2 (cols game - 1) 0) (gen game)
       (idx, g'') = Random.randomR (0, 6) g'
-      blocks =
-        [ iBlock {pos = pos},
-          oBlock {pos = pos},
-          tBlock {pos = pos},
-          sBlock {pos = pos},
-          zBlock {pos = pos},
-          lBlock {pos = pos},
-          jBlock {pos = pos}
-        ]
-   in game {block = Just (blocks !! idx), gen = g''}
+      block = ([iBlock, oBlock, tBlock, sBlock, zBlock, lBlock, jBlock] !! idx) {pos = pos}
+   in if inBounds block 0 (cols game) then game {block = Just block, gen = g''} else newBlock game {gen = g''}
 
 --
 -- Check if the game is over.
