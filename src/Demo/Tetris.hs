@@ -56,6 +56,24 @@ lBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], nam
 
 jBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock", status = Moving}
 
+{-
+ - testWall = testRow1 ++ testRow2 ++ testRow3 ++ testRow4 ++ testRow5 ++ testRow6
+ -
+ - testRow1 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 19) ++ (take 7 . makeRow $ V2 9 19)
+ -
+ - testRow2 = map (`Brick` "oblock") $ (take 3 . makeRow $ V2 0 18) ++ (take 3 . makeRow $ V2 5 18) ++ (take 7 . makeRow $ V2 9 18)
+ -
+ - testRow3 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 17) ++ (take 3 . makeRow $ V2 9 17) ++ (take 3 . makeRow $ V2 13 17)
+ -
+ - testRow4 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 16) ++ (take 7 . makeRow $ V2 9 16)
+ -
+ - testRow5 = map (`Brick` "oblock") $ (take 4 . makeRow $ V2 2 15) ++ (take 4 . makeRow $ V2 12 15)
+ -
+ - testRow6 = map (`Brick` "oblock") $ (take 2 . makeRow $ V2 2 14) ++ (take 1 . makeRow $ V2 12 14)
+ -
+ - makeRow = iterate (\v -> V2 (v ^. _x + 1) (v ^. _y))
+ -}
+
 data Game = Game
   { cols :: Int,
     rows :: Int,
@@ -73,7 +91,7 @@ initialGame =
   Game
     { cols = 16,
       rows = 20,
-      block = lBlock,
+      block = iBlock,
       wall = [],
       gameover = False,
       counter = 0,
