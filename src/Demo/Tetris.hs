@@ -71,8 +71,8 @@ data Game = Game
 initialGame :: Game
 initialGame =
   Game
-    { cols = 27,
-      rows = 50,
+    { cols = 16,
+      rows = 20,
       block = Nothing,
       wall = [],
       gameover = False,

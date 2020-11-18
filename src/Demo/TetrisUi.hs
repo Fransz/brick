@@ -31,7 +31,7 @@ ui :: Game -> [Widget TETRISNAME]
 ui s = [borderWithLabel (str "tetris") $ tetrisUi s <+> scoreUi s]
 
 tetrisUi :: Game -> Widget TETRISNAME
-tetrisUi s = hLimit 100 $ hCenter $ pad $ vBox $ map hBox wids
+tetrisUi s = hLimit 100 $ center $ pad $ vBox $ map hBox wids
   where
     pad w = padLeft (Pad 1) $ padTopBottom 1 $ border w
 
