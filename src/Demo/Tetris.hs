@@ -82,23 +82,23 @@ initialGame =
     }
 
 --
--- Move the block of a game if there is one.
+-- Move the block of a game; keep the current if the move is invalid; mark as Dropped as into the wall.
 moveGame :: TetrisDirection -> Game -> Game
-moveGame dir game = game {block = setDropped . keepFromWall . keepInBounds . moveBlock dir $ prev}
+moveGame dir game = game {block = setDropped . keepFromWall . keepInBounds . moveBlock dir $ curBlock}
   where
-    setDropped b = if dir == TetrisDown && inWall b (wall game ++ ground game) then prev {status = Dropped} else b
-    keepInBounds b = if dir /= TetrisDown && not (inBounds b 0 (cols game)) then prev else b
-    keepFromWall b = if dir /= TetrisDown && inWall b (wall game ++ ground game) then prev else b
-    prev = block game
+    curBlock = block game
+    keepInBounds b = if dir /= TetrisDown && not (inBounds b 0 (cols game)) then curBlock else b
+    keepFromWall b = if dir /= TetrisDown && inWall b (wall game ++ ground game) then curBlock else b
+    setDropped b = if dir == TetrisDown && inWall b (wall game ++ ground game) then curBlock {status = Dropped} else b
 
 --
--- Move a block. Returning Nothing if the move was not posible
+-- Move a block.
 moveBlock :: TetrisDirection -> Block -> Block
-moveBlock dir block = case dir of
-  TetrisLeft -> moveCenter block (V2 (-1) 0)
-  TetrisRight -> moveCenter block (V2 1 0)
-  TetrisDown -> moveCenter block (V2 0 1)
-  TetrisUp -> rotate block
+moveBlock d b = case d of
+  TetrisLeft -> moveCenter b (V2 (-1) 0)
+  TetrisRight -> moveCenter b (V2 1 0)
+  TetrisDown -> moveCenter b (V2 0 1)
+  TetrisUp -> rotate b
 
 --
 -- Move the center position of a block.
@@ -111,30 +111,23 @@ rotate :: Block -> Block
 rotate b = b {poss = map perp $ poss b}
 
 --
--- Drop the block of a game, to the wall.
+-- Drop the block of a game until it is Dropped in the wall.
 freeFall :: Game -> Game
-freeFall game = case status $ block game of
-  Dropped -> game
-  Moving -> freeFall $ moveGame TetrisDown game
+freeFall g = case status $ block g of
+  Dropped -> g
+  Moving -> freeFall $ moveGame TetrisDown g
 
 --
--- drop a block to a wall. returning the block in its last position.
-fallWall :: Block -> [Brick] -> Block
-fallWall block wall =
-  let block' = moveCenter block (V2 0 1)
-   in if inWall block' wall then block else fallWall block' wall
-
---
--- add a block to a wall
+-- add a block to the wall
 buildWall :: Game -> Game
-buildWall game = if status bl == Dropped then game {wall = w ++ map toBrick (poss bl)} else game
+buildWall g = if status b == Dropped then g {wall = w ++ map toBrick (poss b)} else g
   where
-    w = wall game
-    bl = block game
-    toBrick p = Brick (p + pos bl) (name bl)
+    w = wall g
+    b = block g
+    toBrick p = Brick (p + pos b) (name b)
 
 --
--- Calculate the ground of the game.
+-- Calculate the ground of the game. I.e. the first invisable row.
 ground :: Game -> [Brick]
 ground game = map (`Brick` "") $ take (cols game) . iterate (\v -> V2 (v ^. _x + 1) (rows game)) $ V2 0 (rows game)
 
@@ -153,10 +146,10 @@ inWall b w = any ((`elem` map brPos w) . (+ pos b)) (poss b)
 --
 -- periodic action.
 tickGame :: Game -> Game
-tickGame game
-  | isGameOver game = game {gameover = True}
-  | status (block game) == Dropped = newBlock . collapseWall . buildWall $ game
-  | otherwise = tick 1 . moveGame TetrisDown $ game
+tickGame g
+  | isGameOver g = g {gameover = True}
+  | status (block g) == Dropped = newBlock . collapseWall . buildWall $ g
+  | otherwise = tick 1 . moveGame TetrisDown $ g
 
 --
 -- ticker.
@@ -164,50 +157,51 @@ tick :: Int -> Game -> Game
 tick i g = g {counter = counter g + i}
 
 --
--- Create a new random block.
+-- Create a new random block until it is inbounds
 newBlock :: Game -> Game
-newBlock game =
-  let (pos, g') = Random.randomR (V2 0 0, V2 (cols game - 1) 0) (gen game)
-      (idx, g'') = Random.randomR (0, 6) g'
-      block = ([iBlock, oBlock, tBlock, sBlock, zBlock, lBlock, jBlock] !! idx) {pos = pos}
-   in if inBounds block 0 (cols game) then game {block = block, gen = g''} else newBlock game {gen = g''}
+newBlock g =
+  let blocks = [iBlock, oBlock, tBlock, sBlock, zBlock, lBlock, jBlock]
+      (pos, gen') = Random.randomR (V2 0 0, V2 (cols g - 1) 0) (gen g)
+      (idx, gen'') = Random.randomR (0, 6) gen'
+      block = (blocks !! idx) {pos = pos}
+   in if inBounds block 0 (cols g) then g {block = block, gen = gen''} else newBlock g {gen = gen''}
 
 --
 -- Check if the game is over.
 isGameOver :: Game -> Bool
-isGameOver game = False
+isGameOver _ = False
 
 --
 -- remove full rows from the wall, increase score.
 collapseWall :: Game -> Game
-collapseWall game =
-  let (dels, aboves, belows) = analyseWall game
+collapseWall g =
+  let (dels, aboves, belows) = analyseWall g
       rowCnt = length $ nubBy (\b1 b2 -> (^. _y) (brPos b1) == (^. _y) (brPos b2)) dels
 
       dropBrick br = br {brPos = brPos br + V2 0 rowCnt}
       aboves' = map dropBrick aboves
-   in game {wall = belows ++ aboves', score = score game + 10 ^ rowCnt}
+   in g {wall = belows ++ aboves', score = score g + 10 ^ rowCnt}
 
 --
 -- analyse the wall into full rows, rows below full rows, rows above fullrows.
 analyseWall :: Game -> ([Brick], [Brick], [Brick])
-analyseWall game =
-  let sorted = sortOn (Data.Ord.Down . (^. _y) . brPos) $ wall game
+analyseWall g =
+  let sorted = sortOn (Data.Ord.Down . (^. _y) . brPos) $ wall g
       grouped = groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) sorted
-      fulls = concat . filter ((== cols game) . length) $ grouped
-      belows = concat . takeWhile ((/= cols game) . length) $ grouped
-      aboves = (wall game \\ fulls) \\ belows
+      fulls = concat . filter ((== cols g) . length) $ grouped
+      belows = concat . takeWhile ((/= cols g) . length) $ grouped
+      aboves = (wall g \\ fulls) \\ belows
    in (fulls, aboves, belows)
 
 --
 -- Map of all blocks, all positions with the blocks attr.
 posNameMap :: Game -> Map.Map Pos String
-posNameMap game = Map.fromList (posNameTpl (block game) ++ posNameWall (wall game))
+posNameMap g = Map.fromList (posNameTpls (block g) ++ posNameWall (wall g))
 
 --
 -- List off absolute positions of a block, in a tuple with the blocks attrName
-posNameTpl :: Block -> [(Pos, String)]
-posNameTpl b = map ((,name b) . (+ pos b)) (poss b)
+posNameTpls :: Block -> [(Pos, String)]
+posNameTpls b = map ((,name b) . (+ pos b)) (poss b)
 
 --
 -- List off absolute positions of bricks, in a tuple with the bricks attrName
