@@ -169,7 +169,9 @@ newBlock g =
 --
 -- Check if the game is over.
 isGameOver :: Game -> Bool
-isGameOver _ = False
+isGameOver g = not (null w) && ((^. _y) . brPos . head $ w) <= 0
+  where
+    w = sortOn ((^. _y) . brPos) $ wall g
 
 --
 -- remove full rows from the wall, increase score.
