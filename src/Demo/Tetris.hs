@@ -14,7 +14,6 @@ where
 
 import Data.List as List (groupBy, nubBy, sortOn, (\\))
 import qualified Data.Map as Map (Map, fromList)
-import Data.Maybe as Maybe (isNothing)
 import qualified Data.Ord (Down (..))
 import Lens.Micro ((^.))
 import Linear.V2 (V2 (..), perp, _x, _y)
@@ -157,7 +156,7 @@ tickGame :: Game -> Game
 tickGame game
   | isGameOver game = game {gameover = True}
   | status (block game) == Dropped = newBlock . collapseWall . buildWall $ game
-  | otherwise = tick 1 . collapseWall . buildWall . moveGame TetrisDown $ game
+  | otherwise = tick 1 . moveGame TetrisDown $ game
 
 --
 -- ticker.
