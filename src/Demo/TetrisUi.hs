@@ -5,6 +5,7 @@ import Brick.BChan
 import Brick.Widgets.Border
 import Brick.Widgets.Center
 import Control.Concurrent (forkIO, threadDelay)
+import Control.Concurrent.STM.TVar (TVar, newTVarIO, readTVarIO)
 import Control.Monad (forever)
 import qualified Data.Map as Map (findWithDefault)
 import Demo.Tetris
@@ -89,11 +90,9 @@ theApp =
 startApp :: IO Game
 startApp = do
   eventChannel <- newBChan 10
+  delay <- newTVarIO 100000
 
-  _ <- forkIO $
-    forever $ do
-      writeBChan eventChannel TetrisEvent
-      threadDelay 400000
+  _ <- forkIO $ sleepApp eventChannel delay
 
   let buildVty = GV.mkVty GV.defaultConfig
   initialVty <- buildVty
@@ -101,3 +100,9 @@ startApp = do
   state <- initGame
 
   customMain initialVty buildVty (Just eventChannel) theApp state
+
+sleepApp :: BChan TetrisEvent -> TVar Int -> IO ()
+sleepApp chan delay = forever $ do
+  writeBChan chan TetrisEvent
+  d <- readTVarIO delay
+  threadDelay d
