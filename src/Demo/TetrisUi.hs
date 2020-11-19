@@ -7,10 +7,12 @@ import Brick.Widgets.Center
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM.TVar (TVar, newTVarIO, readTVarIO)
 import Control.Monad (forever)
+import Control.Monad.IO.Class (liftIO)
 import qualified Data.Map as Map (findWithDefault)
 import Demo.Tetris
   ( Game (..),
     TetrisDirection (..),
+    changeSpeed,
     freeFall,
     initGame,
     moveGame,
@@ -47,10 +49,16 @@ tetrisUi s = hLimit 100 $ center $ pad $ vBox $ map hBox wids
     wid a = withAttr a $ str "  "
 
 scoreUi :: Game -> Widget TETRISNAME
-scoreUi s = pad $ if gameover s then msg else score <=> fill ' '
+scoreUi s = pad $ if gameover s then msg else scoreboard <=> fill ' '
   where
     pad w = padLeft (Pad 10) $ padAll 1 $ vLimit 8 $ borderWithLabel (str "score") $ padAll 1 w
-    score = hCenter (str ("score: " ++ show (counter s)))
+    scoreboard =
+      hCenter $
+        vBox
+          [ str ("count: " ++ show (counter s)),
+            str ("score: " ++ show (score s)),
+            str ("speed: " ++ show (speed s))
+          ]
     msg = center $ str "GAME OVER"
 
 handleEvent :: Game -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next Game)
@@ -59,8 +67,15 @@ handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ moveGame TetrisLeft
 handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ moveGame TetrisRight s
 handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ moveGame TetrisUp s
 handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ freeFall s
+handleEvent s (VtyEvent (GV.EvKey (GV.KChar '+') [])) = handleSpeed s (+)
+handleEvent s (VtyEvent (GV.EvKey (GV.KChar '-') [])) = handleSpeed s (-)
 handleEvent s (AppEvent TetrisEvent) = continue (tickGame s)
 handleEvent s _ = continue s
+
+handleSpeed :: Game -> (Int -> Int -> Int) -> EventM TETRISNAME (Next Game)
+handleSpeed g (+/-) = do
+  s <- liftIO $ changeSpeed g (+/-)
+  continue $ g {speed = s}
 
 aMap :: AttrMap
 aMap =
@@ -90,7 +105,7 @@ theApp =
 startApp :: IO Game
 startApp = do
   eventChannel <- newBChan 10
-  delay <- newTVarIO 100000
+  delay <- newTVarIO 1000000
 
   _ <- forkIO $ sleepApp eventChannel delay
 

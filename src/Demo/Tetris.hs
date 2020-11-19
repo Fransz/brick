@@ -9,10 +9,12 @@ module Demo.Tetris
     tickGame,
     freeFall,
     posNameMap,
+    changeSpeed,
   )
 where
 
-import Control.Concurrent.STM.TVar (TVar)
+import Control.Concurrent.STM (atomically)
+import Control.Concurrent.STM.TVar (TVar, readTVarIO, writeTVar)
 import Data.List as List (groupBy, sortOn)
 import qualified Data.Map as Map (Map, fromList)
 import qualified Data.Ord (Down (..))
@@ -83,6 +85,7 @@ data Game = Game
     gameover :: Bool,
     counter :: Int,
     score :: Int,
+    speed :: Int,
     gen :: Random.StdGen,
     delay :: TVar Int
   }
@@ -107,6 +110,7 @@ initialGame =
       gameover = False,
       counter = 0,
       score = 0,
+      speed = 0,
       gen = undefined,
       delay = undefined
     }
@@ -225,6 +229,12 @@ groupWall w =
   let sortWall = sortOn (Data.Ord.Down . (^. _y) . brPos) w
    in groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) sortWall
 
+changeSpeed :: Game -> (Int -> Int -> Int) -> IO Int
+changeSpeed g (+/-) = do
+  let s = (+/-) (speed g) 10000
+  atomically $ writeTVar (delay g) s
+  return s
+
 --
 -- Map of all blocks, all positions with the blocks attr.
 posNameMap :: Game -> Map.Map Pos String
@@ -245,4 +255,5 @@ posNameWall = map (\b -> (brPos b, brName b))
 initGame :: TVar Int -> IO Game
 initGame delay = do
   g <- Random.newStdGen
-  return $ newBlock initialGame {gen = g, delay = delay}
+  speed <- readTVarIO delay
+  return $ newBlock initialGame {gen = g, delay = delay, speed = speed}
