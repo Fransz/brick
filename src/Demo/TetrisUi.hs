@@ -97,7 +97,7 @@ startApp = do
   let buildVty = GV.mkVty GV.defaultConfig
   initialVty <- buildVty
 
-  state <- initGame
+  state <- initGame delay
 
   customMain initialVty buildVty (Just eventChannel) theApp state
 

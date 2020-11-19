@@ -12,6 +12,7 @@ module Demo.Tetris
   )
 where
 
+import Control.Concurrent.STM.TVar (TVar)
 import Data.List as List (groupBy, sortOn)
 import qualified Data.Map as Map (Map, fromList)
 import qualified Data.Ord (Down (..))
@@ -82,9 +83,19 @@ data Game = Game
     gameover :: Bool,
     counter :: Int,
     score :: Int,
-    gen :: Random.StdGen
+    gen :: Random.StdGen,
+    delay :: TVar Int
   }
-  deriving (Show)
+
+instance Show Game where
+  show g =
+    show (cols g)
+      ++ show (rows g)
+      ++ show (block g)
+      ++ show (wall g)
+      ++ show (gameover g)
+      ++ show (counter g)
+      ++ show (score g)
 
 initialGame :: Game
 initialGame =
@@ -96,7 +107,8 @@ initialGame =
       gameover = False,
       counter = 0,
       score = 0,
-      gen = undefined
+      gen = undefined,
+      delay = undefined
     }
 
 --
@@ -230,7 +242,7 @@ posNameWall = map (\b -> (brPos b, brName b))
 
 --
 -- Initialize the game. I.e. create a stdGen
-initGame :: IO Game
-initGame = do
+initGame :: TVar Int -> IO Game
+initGame delay = do
   g <- Random.newStdGen
-  return $ newBlock initialGame {gen = g}
+  return $ newBlock initialGame {gen = g, delay = delay}
