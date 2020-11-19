@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 28afe9ac4dc994e0fe01236da6207ca2164f12813f3ea509ab3559696bbe6bb1
+-- hash: 22d08f4222eb610e2a919efcb5cd89a94304fb72601fc58d00f511cce68c5a0c
 
 name:           brickDemo
 version:        0.1.0.0
@@ -47,6 +47,7 @@ library
     , microlens-th
     , mtl
     , random
+    , stm ==2.5.0.0
     , vector
     , vty
   default-language: Haskell2010
@@ -68,6 +69,7 @@ executable brickDemo-exe
     , microlens-th
     , mtl
     , random
+    , stm ==2.5.0.0
     , vector
     , vty
   default-language: Haskell2010
@@ -90,6 +92,7 @@ test-suite brickDemo-test
     , microlens-th
     , mtl
     , random
+    , stm ==2.5.0.0
     , vector
     , vty
   default-language: Haskell2010
