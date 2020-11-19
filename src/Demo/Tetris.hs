@@ -229,11 +229,11 @@ groupWall w =
   let sortWall = sortOn (Data.Ord.Down . (^. _y) . brPos) w
    in groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) sortWall
 
-changeSpeed :: Game -> (Int -> Int -> Int) -> IO Int
+changeSpeed :: Game -> (Int -> Int -> Int) -> IO Game
 changeSpeed g (+/-) = do
-  let s = (+/-) (speed g) 10000
-  atomically $ writeTVar (delay g) s
-  return s
+  s <- readTVarIO (delay g)
+  atomically $ writeTVar (delay g) $ (+/-) s 10000
+  return g {speed = s}
 
 --
 -- Map of all blocks, all positions with the blocks attr.

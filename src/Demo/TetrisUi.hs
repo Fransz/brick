@@ -74,8 +74,8 @@ handleEvent s _ = continue s
 
 handleSpeed :: Game -> (Int -> Int -> Int) -> EventM TETRISNAME (Next Game)
 handleSpeed g (+/-) = do
-  s <- liftIO $ changeSpeed g (+/-)
-  continue $ g {speed = s}
+  g' <- liftIO $ changeSpeed g (+/-)
+  continue g'
 
 aMap :: AttrMap
 aMap =
@@ -107,7 +107,7 @@ startApp = do
   eventChannel <- newBChan 10
   delay <- newTVarIO 1000000
 
-  _ <- forkIO $ sleepApp eventChannel delay
+  forkIO $ sleepApp eventChannel delay
 
   let buildVty = GV.mkVty GV.defaultConfig
   initialVty <- buildVty
