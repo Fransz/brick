@@ -30,6 +30,7 @@ dependencies:
 - random
 - mtl
 - containers
+- stm == 2.5.0.0
 
 library:
   source-dirs: 

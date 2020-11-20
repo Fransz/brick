@@ -9,9 +9,12 @@ module Demo.Tetris
     tickGame,
     freeFall,
     posNameMap,
+    changeSpeed,
   )
 where
 
+import Control.Concurrent.STM (atomically)
+import Control.Concurrent.STM.TVar (TVar, readTVarIO, writeTVar)
 import Data.List as List (groupBy, sortOn)
 import qualified Data.Map as Map (Map, fromList)
 import qualified Data.Ord (Down (..))
@@ -82,9 +85,20 @@ data Game = Game
     gameover :: Bool,
     counter :: Int,
     score :: Int,
-    gen :: Random.StdGen
+    speed :: Int,
+    gen :: Random.StdGen,
+    delay :: TVar Int
   }
-  deriving (Show)
+
+instance Show Game where
+  show g =
+    show (cols g)
+      ++ show (rows g)
+      ++ show (block g)
+      ++ show (wall g)
+      ++ show (gameover g)
+      ++ show (counter g)
+      ++ show (score g)
 
 initialGame :: Game
 initialGame =
@@ -96,7 +110,9 @@ initialGame =
       gameover = False,
       counter = 0,
       score = 0,
-      gen = undefined
+      speed = 0,
+      gen = undefined,
+      delay = undefined
     }
 
 --
@@ -163,11 +179,11 @@ inWall b w = any ((`elem` map brPos w) . (+ pos b)) (poss b)
 
 --
 -- periodic action.
-tickGame :: Game -> Game
+tickGame :: Game -> IO Game
 tickGame g
-  | isGameOver g = g {gameover = True}
-  | status (block g) == Dropped = newBlock . collapseWall . buildWall $ g
-  | otherwise = tick 1 . moveGame TetrisDown $ g
+  | isGameOver g = return $ g {gameover = True}
+  | status (block g) == Dropped = setDelay . newBlock . collapseWall . buildWall $ g
+  | otherwise = return $ tick 1 . moveGame TetrisDown $ g
 
 --
 -- ticker.
@@ -194,7 +210,12 @@ isGameOver g = not (null w) && ((^. _y) . brPos . head $ w) <= 0
 --
 -- Collapse wall
 collapseWall :: Game -> Game
-collapseWall g = g {wall = collapseWall' (cols g) (groupWall $ wall g)}
+collapseWall g =
+  let wall' = collapseWall' (cols g) (groupWall $ wall g)
+      dRows = (length (wall g) - length wall') `quot` cols g
+      score' = 10 ^ dRows + score g
+      speed' = abs $ speed g - truncate (fromIntegral (dRows * speed g) / 20)
+   in g {wall = wall', score = score', speed = speed'}
 
 --
 -- Remove full rows from the wall.
@@ -214,6 +235,21 @@ groupWall w =
    in groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) sortWall
 
 --
+-- Change the speed and the delay of the game
+changeSpeed :: Game -> (Int -> Int -> Int) -> IO Game
+changeSpeed g (+/-) = do
+  d <- readTVarIO (delay g)
+  atomically $ writeTVar (delay g) $ (+/-) d 10000
+  return g {speed = (+/-) d 10000}
+
+--
+-- Set the delay of the game with the speed.
+setDelay :: Game -> IO Game
+setDelay g = do
+  atomically $ writeTVar (delay g) (speed g)
+  return g
+
+--
 -- Map of all blocks, all positions with the blocks attr.
 posNameMap :: Game -> Map.Map Pos String
 posNameMap g = Map.fromList (posNameTpls (block g) ++ posNameWall (wall g))
@@ -230,7 +266,8 @@ posNameWall = map (\b -> (brPos b, brName b))
 
 --
 -- Initialize the game. I.e. create a stdGen
-initGame :: IO Game
-initGame = do
+initGame :: TVar Int -> IO Game
+initGame delay = do
   g <- Random.newStdGen
-  return $ newBlock initialGame {gen = g}
+  speed <- readTVarIO delay
+  return $ newBlock initialGame {gen = g, delay = delay, speed = speed}
