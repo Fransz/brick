@@ -210,7 +210,11 @@ isGameOver g = not (null w) && ((^. _y) . brPos . head $ w) <= 0
 --
 -- Collapse wall
 collapseWall :: Game -> Game
-collapseWall g = g {wall = collapseWall' (cols g) (groupWall $ wall g)}
+collapseWall g =
+  let wall' = collapseWall' (cols g) (groupWall $ wall g)
+      dRows = (length (wall g) - length wall') `quot` cols g
+      score' = 10 ^ dRows + score g
+   in g {wall = wall', score = score'}
 
 --
 -- Remove full rows from the wall.
