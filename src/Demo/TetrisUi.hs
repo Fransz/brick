@@ -69,8 +69,13 @@ handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ moveGame TetrisUp s
 handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ freeFall s
 handleEvent s (VtyEvent (GV.EvKey (GV.KChar '+') [])) = handleSpeed s (+)
 handleEvent s (VtyEvent (GV.EvKey (GV.KChar '-') [])) = handleSpeed s (-)
-handleEvent s (AppEvent TetrisEvent) = continue (tickGame s)
+handleEvent s (AppEvent TetrisEvent) = handleTick s
 handleEvent s _ = continue s
+
+handleTick :: Game -> EventM TETRISNAME (Next Game)
+handleTick g = do
+  g' <- liftIO $ tickGame g
+  continue g'
 
 handleSpeed :: Game -> (Int -> Int -> Int) -> EventM TETRISNAME (Next Game)
 handleSpeed g (+/-) = do

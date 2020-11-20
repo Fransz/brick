@@ -179,11 +179,11 @@ inWall b w = any ((`elem` map brPos w) . (+ pos b)) (poss b)
 
 --
 -- periodic action.
-tickGame :: Game -> Game
+tickGame :: Game -> IO Game
 tickGame g
-  | isGameOver g = g {gameover = True}
-  | status (block g) == Dropped = newBlock . collapseWall . buildWall $ g
-  | otherwise = tick 1 . moveGame TetrisDown $ g
+  | isGameOver g = return $ g {gameover = True}
+  | status (block g) == Dropped = setDelay . newBlock . collapseWall . buildWall $ g
+  | otherwise = return $ tick 1 . moveGame TetrisDown $ g
 
 --
 -- ticker.
@@ -214,7 +214,8 @@ collapseWall g =
   let wall' = collapseWall' (cols g) (groupWall $ wall g)
       dRows = (length (wall g) - length wall') `quot` cols g
       score' = 10 ^ dRows + score g
-   in g {wall = wall', score = score'}
+      speed' = abs $ speed g - truncate (fromIntegral (dRows * speed g) / 20)
+   in g {wall = wall', score = score', speed = speed'}
 
 --
 -- Remove full rows from the wall.
@@ -233,11 +234,20 @@ groupWall w =
   let sortWall = sortOn (Data.Ord.Down . (^. _y) . brPos) w
    in groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) sortWall
 
+--
+-- Change the speed and the delay of the game
 changeSpeed :: Game -> (Int -> Int -> Int) -> IO Game
 changeSpeed g (+/-) = do
-  s <- readTVarIO (delay g)
-  atomically $ writeTVar (delay g) $ (+/-) s 10000
-  return g {speed = s}
+  d <- readTVarIO (delay g)
+  atomically $ writeTVar (delay g) $ (+/-) d 10000
+  return g {speed = (+/-) d 10000}
+
+--
+-- Set the delay of the game with the speed.
+setDelay :: Game -> IO Game
+setDelay g = do
+  atomically $ writeTVar (delay g) (speed g)
+  return g
 
 --
 -- Map of all blocks, all positions with the blocks attr.
