@@ -8,6 +8,7 @@ import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM.TVar (TVar, newTVarIO, readTVarIO)
 import Control.Monad (forever)
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.State (execState)
 import qualified Data.Map as Map (findWithDefault)
 import Demo.Tetris
   ( Game (..),
@@ -63,10 +64,10 @@ scoreUi s = pad $ if gameover s then msg else scoreboard <=> fill ' '
 
 handleEvent :: Game -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next Game)
 handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = halt s
-handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ moveGame TetrisLeft s
-handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ moveGame TetrisRight s
-handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ moveGame TetrisUp s
-handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ freeFall s
+handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ execState (moveGame TetrisLeft) s
+handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ execState (moveGame TetrisRight) s
+handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ execState (moveGame TetrisUp) s
+handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ execState freeFall s
 handleEvent s (VtyEvent (GV.EvKey (GV.KChar '+') [])) = handleSpeed s (+)
 handleEvent s (VtyEvent (GV.EvKey (GV.KChar '-') [])) = handleSpeed s (-)
 handleEvent s (AppEvent TetrisEvent) = handleTick s

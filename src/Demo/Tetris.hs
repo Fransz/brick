@@ -10,17 +10,23 @@ module Demo.Tetris
     freeFall,
     posNameMap,
     changeSpeed,
+    Tetris,
+    initialGame,
   )
 where
 
 import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TVar (TVar, readTVarIO, writeTVar)
+import Control.Monad (unless)
+import Control.Monad.Trans.State (State, get, put)
 import Data.List as List (groupBy, sortOn)
 import qualified Data.Map as Map (Map, fromList)
 import qualified Data.Ord (Down (..))
 import Lens.Micro ((^.))
 import Linear.V2 (V2 (..), perp, _x, _y)
 import qualified System.Random as Random (Random (randomR), StdGen, newStdGen)
+
+type Tetris = State Game
 
 type Pos = V2 Int
 
@@ -115,15 +121,24 @@ initialGame =
       delay = undefined
     }
 
+initialGame' :: Tetris Game
+initialGame' = return initialGame
+
 --
 -- Move the block of a game; keep the current if the move is invalid; mark as Dropped as into the wall.
-moveGame :: TetrisDirection -> Game -> Game
-moveGame dir game = game {block = setDropped . keepFromWall . keepInBounds . moveBlock dir $ curBlock}
+moveGame' :: TetrisDirection -> Game -> Game
+moveGame' dir game = game {block = setDropped . keepFromWall . keepInBounds . moveBlock dir $ curBlock}
   where
     curBlock = block game
     keepInBounds b = if dir /= TetrisDown && not (inBounds b 0 (cols game)) then curBlock else b
     keepFromWall b = if dir /= TetrisDown && inWall b (wall game ++ ground game) then curBlock else b
     setDropped b = if dir == TetrisDown && inWall b (wall game ++ ground game) then curBlock {status = Dropped} else b
+
+moveGame :: TetrisDirection -> Tetris ()
+moveGame dir = do
+  g <- get
+  put $ moveGame' dir g
+  return ()
 
 --
 -- Move a block.
@@ -146,10 +161,16 @@ rotate b = b {poss = map perp $ poss b}
 
 --
 -- Drop the block of a game until it is Dropped in the wall.
-freeFall :: Game -> Game
-freeFall g = case status $ block g of
-  Dropped -> g
-  Moving -> freeFall $ moveGame TetrisDown g
+{-
+ - freeFall :: Game -> Game
+ - freeFall g = case status $ block g of
+ -   Dropped -> g
+ -   Moving -> freeFall $ moveGame TetrisDown g
+ -}
+freeFall :: Tetris ()
+freeFall = do
+  g <- get
+  unless (status (block g) == Dropped) (moveGame TetrisDown >> freeFall)
 
 --
 -- add a block to the wall
@@ -183,7 +204,7 @@ tickGame :: Game -> IO Game
 tickGame g
   | isGameOver g = return $ g {gameover = True}
   | status (block g) == Dropped = setDelay . newBlock . collapseWall . buildWall $ g
-  | otherwise = return $ tick 1 . moveGame TetrisDown $ g
+  | otherwise = return $ tick 1 . moveGame' TetrisDown $ g
 
 --
 -- ticker.
