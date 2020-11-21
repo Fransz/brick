@@ -155,30 +155,6 @@ moveGame' dir game = game {block = setDropped . keepFromWall . keepInBounds (0, 
     keepFromWall b = if dir /= TetrisDown && inWall b (wall game ++ ground game) then curBlock else b
     setDropped b = if dir == TetrisDown && inWall b (wall game ++ ground game) then curBlock {blStatus = Dropped} else b
 
-isInLBound :: Int -> Block -> Bool
-isInLBound min b = all ((>= min) . (^. _x)) $ blPosAs b
-
-isInRBound :: Int -> Block -> Bool
-isInRBound max b = all ((<= max) . (^. _x)) $ blPosAs b
-
-isInBounds :: (Int, Int) -> Block -> Bool
-isInBounds (min, max) b = isInLBound min b && isInRBound max b
-
-keepInLeftBound :: Int -> Block -> Block
-keepInLeftBound min b
-  | not $ isInLBound min b = keepInLeftBound min $ moveBlock TetrisRight b
-  | otherwise = b
-
-keepInRightBound :: Int -> Block -> Block
-keepInRightBound max b
-  | not $ isInRBound max b = keepInRightBound max $ moveBlock TetrisLeft b
-  | otherwise = b
-
-keepInBounds :: (Int, Int) -> Block -> Block
-keepInBounds (min, max) b
-  | max - min <= (length . blPosRs) b = b -- the block doesnt fit between min and max
-  | otherwise = keepInRightBound max $ keepInLeftBound min b
-
 --
 -- Move a block.
 moveBlock :: TetrisDirection -> Block -> Block
@@ -199,24 +175,45 @@ rotate :: Block -> Block
 rotate b = b {blPosRs = map perp $ blPosRs b}
 
 --
--- add a block to the wall
-buildWallM :: Tetris ()
-buildWallM = do
-  g <- get
-  let toBricks bl = map (\p -> Brick (p + blPos bl) (blName bl)) (blPosRs bl)
-  when (blStatus (block g) == Dropped) $ put (g {wall = wall g ++ toBricks (block g)})
+-- check if the blocks xs are greater then min
+isInLBound :: Int -> Block -> Bool
+isInLBound min b = all ((>= min) . (^. _x)) $ blPosAs b
+
+--
+-- check if the blocks xs are smaller then max
+isInRBound :: Int -> Block -> Bool
+isInRBound max b = all ((<= max) . (^. _x)) $ blPosAs b
+
+--
+-- check if the block xs are between the given dimensions (incl)
+isInBounds :: (Int, Int) -> Block -> Bool
+isInBounds (min, max) b = isInLBound min b && isInRBound max b
+
+--
+-- Move the block right if it is off the field on the left
+keepInLeftBound :: Int -> Block -> Block
+keepInLeftBound min b
+  | not $ isInLBound min b = keepInLeftBound min $ moveBlock TetrisRight b
+  | otherwise = b
+
+--
+-- Move the block left if it is off the field on the right
+keepInRightBound :: Int -> Block -> Block
+keepInRightBound max b
+  | not $ isInRBound max b = keepInRightBound max $ moveBlock TetrisLeft b
+  | otherwise = b
+
+--
+-- Move the block if it is off the field (if possible)
+keepInBounds :: (Int, Int) -> Block -> Block
+keepInBounds (min, max) b
+  | max - min <= (length . blPosRs) b = b -- the block doesnt fit between min and max
+  | otherwise = keepInRightBound max $ keepInLeftBound min b
 
 --
 -- Calculate the ground of the game. I.e. the first invisable row.
 ground :: Game -> [Brick]
 ground game = map (`Brick` "") $ take (cols game) . iterate (\v -> V2 (v ^. _x + 1) (rows game)) $ V2 0 (rows game)
-
---
--- Check if a block is in the field.
-inBounds :: Block -> Int -> Int -> Bool
-inBounds b min max = all (>= min) xs && all (< max) xs
-  where
-    xs = map ((^. _x) . (+ blPos b)) (blPosRs b)
 
 --
 -- Check if a block is in the wall.
@@ -229,23 +226,12 @@ tick :: Int -> Game -> Game
 tick i g = g {counter = counter g + i}
 
 --
--- Create a new random block until it is inbounds
-newBlockM :: Tetris ()
-newBlockM = do
+-- add a block to the wall
+buildWallM :: Tetris ()
+buildWallM = do
   g <- get
-  let blocks = [iBlock, oBlock, tBlock, sBlock, zBlock, lBlock, jBlock]
-      (blPos, gen') = Random.randomR (V2 0 0, V2 (cols g - 1) 0) (gen g)
-      (idx, gen'') = Random.randomR (0, 6) gen'
-      block = (blocks !! idx) {blPos = blPos}
-      block' = keepInBounds (0, cols g - 1) block
-  put $ g {block = block', gen = gen''}
-
---
--- Check if the game is over.
-isGameOver :: Game -> Bool
-isGameOver g = not (null w) && ((^. _y) . brPos . head $ w) <= 0
-  where
-    w = sortOn ((^. _y) . brPos) $ wall g
+  let toBricks bl = map (\p -> Brick (p + blPos bl) (blName bl)) (blPosRs bl)
+  when (blStatus (block g) == Dropped) $ put (g {wall = wall g ++ toBricks (block g)})
 
 --
 -- Collapse wall
@@ -274,6 +260,25 @@ groupWall :: [Brick] -> [[Brick]]
 groupWall w =
   let sortWall = sortOn (Data.Ord.Down . (^. _y) . brPos) w
    in groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) sortWall
+
+--
+-- Create a new random block until it is inbounds
+newBlockM :: Tetris ()
+newBlockM = do
+  g <- get
+  let blocks = [iBlock, oBlock, tBlock, sBlock, zBlock, lBlock, jBlock]
+      (blPos, gen') = Random.randomR (V2 0 0, V2 (cols g - 1) 0) (gen g)
+      (idx, gen'') = Random.randomR (0, 6) gen'
+      block = (blocks !! idx) {blPos = blPos}
+      block' = keepInBounds (0, cols g - 1) block
+  put $ g {block = block', gen = gen''}
+
+--
+-- Check if the game is over.
+isGameOver :: Game -> Bool
+isGameOver g = not (null w) && ((^. _y) . brPos . head $ w) <= 0
+  where
+    w = sortOn ((^. _y) . brPos) $ wall g
 
 --
 -- Change the speed and the delay of the game
