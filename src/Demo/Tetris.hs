@@ -249,9 +249,10 @@ collapseWallM = do
 collapseWall' :: Int -> [[Brick]] -> [Brick]
 collapseWall' full l
   | [] <- l = []
-  | (r : rs) <- l, length r == full = collapseWall' full (map (map dropBrick) rs)
+  | (r : rs) <- l, length r == full = collapseWall' full $ dropBricks rs
   | (r : rs) <- l = r ++ collapseWall' full rs
   where
+    dropBricks brs = (map . map) dropBrick brs
     dropBrick br = br {brPos = brPos br + V2 0 1}
 
 --
