@@ -149,12 +149,35 @@ tickGameM = do
 --
 -- Move the block of a game; keep the current if the move is invalid; mark as Dropped as into the wall.
 moveGame' :: TetrisDirection -> Game -> Game
-moveGame' dir game = game {block = setDropped . keepFromWall . keepInBounds . moveBlock dir $ curBlock}
+moveGame' dir game = game {block = setDropped . keepFromWall . keepInBounds (0, cols game - 1) . moveBlock dir $ curBlock}
   where
     curBlock = block game
-    keepInBounds b = if dir /= TetrisDown && not (inBounds b 0 (cols game)) then curBlock else b
     keepFromWall b = if dir /= TetrisDown && inWall b (wall game ++ ground game) then curBlock else b
     setDropped b = if dir == TetrisDown && inWall b (wall game ++ ground game) then curBlock {blStatus = Dropped} else b
+
+isInLBound :: Int -> Block -> Bool
+isInLBound min b = all ((>= min) . (^. _x)) $ blPosAs b
+
+isInRBound :: Int -> Block -> Bool
+isInRBound max b = all ((<= max) . (^. _x)) $ blPosAs b
+
+isInBounds :: (Int, Int) -> Block -> Bool
+isInBounds (min, max) b = isInLBound min b && isInRBound max b
+
+keepInLeftBound :: Int -> Block -> Block
+keepInLeftBound min b
+  | not $ isInLBound min b = keepInLeftBound min $ moveBlock TetrisRight b
+  | otherwise = b
+
+keepInRightBound :: Int -> Block -> Block
+keepInRightBound max b
+  | not $ isInRBound max b = keepInRightBound max $ moveBlock TetrisLeft b
+  | otherwise = b
+
+keepInBounds :: (Int, Int) -> Block -> Block
+keepInBounds (min, max) b
+  | max - min <= (length . blPosRs) b = b -- the block doesnt fit between min and max
+  | otherwise = keepInRightBound max $ keepInLeftBound min b
 
 --
 -- Move a block.
@@ -214,9 +237,8 @@ newBlockM = do
       (blPos, gen') = Random.randomR (V2 0 0, V2 (cols g - 1) 0) (gen g)
       (idx, gen'') = Random.randomR (0, 6) gen'
       block = (blocks !! idx) {blPos = blPos}
-  if inBounds block 0 (cols g)
-    then put $ g {block = block, gen = gen''}
-    else (put $ g {gen = gen''}) >> newBlockM
+      block' = keepInBounds (0, cols g - 1) block
+  put $ g {block = block', gen = gen''}
 
 --
 -- Check if the game is over.
@@ -267,6 +289,11 @@ setDelay :: Game -> IO Game
 setDelay g = do
   atomically $ writeTVar (delay g) (speed g)
   return g
+
+--
+-- All absolute coordinates of a block
+blPosAs :: Block -> [Pos]
+blPosAs b = map (+ blPos b) (blPosRs b)
 
 --
 -- Map of all blocks, all positions with the blocks attr.
