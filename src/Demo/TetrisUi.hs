@@ -57,7 +57,10 @@ tetrisUi s = hLimit 100 $ center $ pad $ vBox $ map hBox wids
     wid a = withAttr a $ str "  "
 
 scoreUi :: Game -> Widget TETRISNAME
-scoreUi s = pad $ if gameOver s then msg else scoreboard <=> fill ' '
+scoreUi s
+  | pause s = pad pauseMsg
+  | gameOver s = pad gameOverMsg
+  | otherwise = pad $ scoreboard <=> fill ' '
   where
     tetris = game s
     pad w = padLeft (Pad 10) $ padAll 1 $ vLimit 8 $ borderWithLabel (str "score") $ padAll 1 w
@@ -68,9 +71,11 @@ scoreUi s = pad $ if gameOver s then msg else scoreboard <=> fill ' '
             str ("score: " ++ show (score tetris)),
             str ("speed: " ++ show (speed tetris))
           ]
-    msg = center $ str "GAME OVER"
+    gameOverMsg = center $ str "GAME OVER"
+    pauseMsg = center $ str "PAUSE"
 
 handleEvent :: Game -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next Game)
+handleEvent s (VtyEvent (GV.EvKey (GV.KChar 'p') [])) = continue $ s {pause = not $ pause s}
 handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = halt s
 handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ handleTetrisEvent s (moveTetrisM TetrisLeft)
 handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ handleTetrisEvent s (moveTetrisM TetrisRight)
@@ -80,7 +85,9 @@ handleEvent s (AppEvent TetrisEvent) = continue $ handleTetrisEvent s tickTetris
 handleEvent s _ = continue s
 
 handleTetrisEvent :: Game -> TetrisS () -> Game
-handleTetrisEvent s act = s {game = execState act $ game s}
+handleTetrisEvent s act
+  | pause s || gameOver s = s
+  | otherwise = s {game = execState act $ game s}
 
 {-
  - handleTick :: Tetris -> EventM TETRISNAME (Next Tetris)
