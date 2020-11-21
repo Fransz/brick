@@ -210,14 +210,18 @@ ground game = map (`Brick` "") $ take (cols game) . iterate (\v -> V2 (v ^. _x +
 --
 -- Check if a block is in the wall.
 inWall :: Block -> [Brick] -> Bool
-inWall b w = any ((`elem` map brPos w) . (+ blPos b)) (blPosRs b)
+inWall b w = any (`elem` map brPos w) $ blPosAs b
+
+--
+-- Turn a block into bricks.
+toBricks :: Block -> [Brick]
+toBricks bl = map (\p -> Brick p (blName bl)) $ blPosAs bl
 
 --
 -- add a block to the wall
 buildWallM :: Tetris ()
 buildWallM = do
   g <- get
-  let toBricks bl = map (\p -> Brick (p + blPos bl) (blName bl)) (blPosRs bl)
   when (blStatus (block g) == Dropped) $ put (g {wall = wall g ++ toBricks (block g)})
 
 --
@@ -248,6 +252,11 @@ groupWall :: [Brick] -> [[Brick]]
 groupWall w =
   let sortWall = sortOn (Data.Ord.Down . (^. _y) . brPos) w
    in groupBy (\b1 b2 -> brPos b1 ^. _y == brPos b2 ^. _y) sortWall
+
+--
+-- All absolute coordinates of a block
+blPosAs :: Block -> [Pos]
+blPosAs b = map (+ blPos b) (blPosRs b)
 
 --
 -- Create a new random block until it is inbounds
@@ -289,11 +298,6 @@ setDelay g = do
   return g
 
 --
--- All absolute coordinates of a block
-blPosAs :: Block -> [Pos]
-blPosAs b = map (+ blPos b) (blPosRs b)
-
---
 -- Map of all blocks, all positions with the blocks attr.
 posNameMap :: Game -> Map.Map Pos String
 posNameMap g = Map.fromList (posNameTpls (block g) ++ posNameWall (wall g))
@@ -301,7 +305,7 @@ posNameMap g = Map.fromList (posNameTpls (block g) ++ posNameWall (wall g))
 --
 -- List off absolute positions of a block, in a tuple with the blocks attrName
 posNameTpls :: Block -> [(Pos, String)]
-posNameTpls b = map ((,blName b) . (+ blPos b)) (blPosRs b)
+posNameTpls b = map (,blName b) $ blPosAs b
 
 --
 -- List off absolute positions of bricks, in a tuple with the bricks attrName
