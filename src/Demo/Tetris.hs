@@ -141,7 +141,7 @@ tickGameM :: Tetris ()
 tickGameM = do
   g <- get
   if status (block g) == Dropped
-    then buildWallM >>= collapseWallM >>= newBlockM
+    then buildWallM >> collapseWallM >> newBlockM
     else moveGameM TetrisDown
 
 -- | isGameOver g = return $ g {gameover = True}
@@ -177,14 +177,11 @@ rotate b = b {poss = map perp $ poss b}
 
 --
 -- add a block to the wall
-buildWallM :: Tetris Game
+buildWallM :: Tetris ()
 buildWallM = do
   g <- get
   let toBricks bl = map (\p -> Brick (p + pos bl) (name bl)) (poss bl)
-      g' = g {wall = wall g ++ toBricks (block g)}
-  if status (block g) == Dropped
-    then put g' >> return g'
-    else return g
+  when (status (block g) == Dropped) $ put (g {wall = wall g ++ toBricks (block g)})
 
 --
 -- Calculate the ground of the game. I.e. the first invisable row.
@@ -210,13 +207,16 @@ tick i g = g {counter = counter g + i}
 
 --
 -- Create a new random block until it is inbounds
-newBlockM :: Game -> Tetris ()
-newBlockM g = do
+newBlockM :: Tetris ()
+newBlockM = do
+  g <- get
   let blocks = [iBlock, oBlock, tBlock, sBlock, zBlock, lBlock, jBlock]
       (pos, gen') = Random.randomR (V2 0 0, V2 (cols g - 1) 0) (gen g)
       (idx, gen'') = Random.randomR (0, 6) gen'
       block = (blocks !! idx) {pos = pos}
-  if inBounds block 0 (cols g) then put $ g {block = block, gen = gen''} else newBlockM g {gen = gen''}
+  if inBounds block 0 (cols g)
+    then put $ g {block = block, gen = gen''}
+    else (put $ g {gen = gen''}) >> newBlockM
 
 --
 -- Check if the game is over.
@@ -227,14 +227,14 @@ isGameOver g = not (null w) && ((^. _y) . brPos . head $ w) <= 0
 
 --
 -- Collapse wall
-collapseWallM :: Game -> Tetris Game
-collapseWallM g = do
+collapseWallM :: Tetris ()
+collapseWallM = do
+  g <- get
   let wall' = collapseWall' (cols g) (groupWall $ wall g)
       dRows = (length (wall g) - length wall') `quot` cols g
       score' = 10 ^ dRows + score g
       speed' = abs $ speed g - truncate (fromIntegral (dRows * speed g) / 20)
-      g' = g {wall = wall', score = score', speed = speed'}
-  put g' >> return g'
+  put $ g {wall = wall', score = score', speed = speed'}
 
 --
 -- Remove full rows from the wall.
