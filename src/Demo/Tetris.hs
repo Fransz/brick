@@ -17,7 +17,7 @@ where
 
 import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TVar (TVar, readTVarIO, writeTVar)
-import Control.Monad (unless, void, when)
+import Control.Monad (unless, when)
 import Control.Monad.Trans.State (State, get, put)
 import Data.List as List (groupBy, sortOn)
 import qualified Data.Map as Map (Map, fromList)
@@ -35,8 +35,8 @@ data TetrisDirection = TetrisLeft | TetrisRight | TetrisUp | TetrisDown deriving
 data BlockStatus = Moving | Dropped deriving (Show, Eq)
 
 data Block = Block
-  { pos :: Pos,
-    poss :: [Pos],
+  { blPos :: Pos,
+    blPosRs :: [Pos],
     name :: String,
     status :: BlockStatus
   }
@@ -51,19 +51,19 @@ data Brick = Brick
 instance Eq Brick where
   (==) b1 b2 = brPos b1 == brPos b2
 
-iBlock = Block {pos = V2 10 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock", status = Moving}
+iBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock", status = Moving}
 
-oBlock = Block {pos = V2 10 0, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Moving}
+oBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Moving}
 
-tBlock = Block {pos = V2 10 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], name = "tblock", status = Moving}
+tBlock = Block {blPos = V2 10 0, blPosRs = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], name = "tblock", status = Moving}
 
-sBlock = Block {pos = V2 10 0, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock", status = Moving}
+sBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock", status = Moving}
 
-zBlock = Block {pos = V2 10 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock", status = Moving}
+zBlock = Block {blPos = V2 10 0, blPosRs = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock", status = Moving}
 
-lBlock = Block {pos = V2 10 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving}
+lBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving}
 
-jBlock = Block {pos = V2 10 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock", status = Moving}
+jBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock", status = Moving}
 
 testWall = testRow1 ++ testRow2 ++ testRow3 ++ testRow4 ++ testRow5 ++ testRow6
 
@@ -168,19 +168,19 @@ moveBlock d b = case d of
 --
 -- Move the center position of a block.
 moveCenter :: Block -> V2 Int -> Block
-moveCenter b d = b {pos = pos b + d}
+moveCenter b d = b {blPos = blPos b + d}
 
 --
 -- rotate a block.
 rotate :: Block -> Block
-rotate b = b {poss = map perp $ poss b}
+rotate b = b {blPosRs = map perp $ blPosRs b}
 
 --
 -- add a block to the wall
 buildWallM :: Tetris ()
 buildWallM = do
   g <- get
-  let toBricks bl = map (\p -> Brick (p + pos bl) (name bl)) (poss bl)
+  let toBricks bl = map (\p -> Brick (p + blPos bl) (name bl)) (blPosRs bl)
   when (status (block g) == Dropped) $ put (g {wall = wall g ++ toBricks (block g)})
 
 --
@@ -193,12 +193,12 @@ ground game = map (`Brick` "") $ take (cols game) . iterate (\v -> V2 (v ^. _x +
 inBounds :: Block -> Int -> Int -> Bool
 inBounds b min max = all (>= min) xs && all (< max) xs
   where
-    xs = map ((^. _x) . (+ pos b)) (poss b)
+    xs = map ((^. _x) . (+ blPos b)) (blPosRs b)
 
 --
 -- Check if a block is in the wall.
 inWall :: Block -> [Brick] -> Bool
-inWall b w = any ((`elem` map brPos w) . (+ pos b)) (poss b)
+inWall b w = any ((`elem` map brPos w) . (+ blPos b)) (blPosRs b)
 
 --
 -- ticker.
@@ -211,9 +211,9 @@ newBlockM :: Tetris ()
 newBlockM = do
   g <- get
   let blocks = [iBlock, oBlock, tBlock, sBlock, zBlock, lBlock, jBlock]
-      (pos, gen') = Random.randomR (V2 0 0, V2 (cols g - 1) 0) (gen g)
+      (blPos, gen') = Random.randomR (V2 0 0, V2 (cols g - 1) 0) (gen g)
       (idx, gen'') = Random.randomR (0, 6) gen'
-      block = (blocks !! idx) {pos = pos}
+      block = (blocks !! idx) {blPos = blPos}
   if inBounds block 0 (cols g)
     then put $ g {block = block, gen = gen''}
     else (put $ g {gen = gen''}) >> newBlockM
@@ -276,7 +276,7 @@ posNameMap g = Map.fromList (posNameTpls (block g) ++ posNameWall (wall g))
 --
 -- List off absolute positions of a block, in a tuple with the blocks attrName
 posNameTpls :: Block -> [(Pos, String)]
-posNameTpls b = map ((,name b) . (+ pos b)) (poss b)
+posNameTpls b = map ((,name b) . (+ blPos b)) (blPosRs b)
 
 --
 -- List off absolute positions of bricks, in a tuple with the bricks attrName
