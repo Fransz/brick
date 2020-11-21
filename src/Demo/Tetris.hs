@@ -119,9 +119,6 @@ initialGame =
       delay = undefined
     }
 
-initialGame' :: Tetris Game
-initialGame' = return initialGame
-
 moveGameM :: TetrisDirection -> Tetris ()
 moveGameM dir = do
   g <- get
@@ -185,11 +182,6 @@ isInRBound :: Int -> Block -> Bool
 isInRBound max b = all ((<= max) . (^. _x)) $ blPosAs b
 
 --
--- check if the block xs are between the given dimensions (incl)
-isInBounds :: (Int, Int) -> Block -> Bool
-isInBounds (min, max) b = isInLBound min b && isInRBound max b
-
---
 -- Move the block right if it is off the field on the left
 keepInLeftBound :: Int -> Block -> Block
 keepInLeftBound min b
@@ -219,11 +211,6 @@ ground game = map (`Brick` "") $ take (cols game) . iterate (\v -> V2 (v ^. _x +
 -- Check if a block is in the wall.
 inWall :: Block -> [Brick] -> Bool
 inWall b w = any ((`elem` map brPos w) . (+ blPos b)) (blPosRs b)
-
---
--- ticker.
-tick :: Int -> Game -> Game
-tick i g = g {counter = counter g + i}
 
 --
 -- add a block to the wall
@@ -273,6 +260,11 @@ newBlockM = do
       block = (blocks !! idx) {blPos = blPos}
       block' = keepInBounds (0, cols g - 1) block
   put $ g {block = block', gen = gen''}
+
+--
+-- ticker.
+tick :: Int -> Game -> Game
+tick i g = g {counter = counter g + i}
 
 --
 -- Check if the game is over.
