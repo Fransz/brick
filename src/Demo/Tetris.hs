@@ -138,10 +138,8 @@ tickTetrisM :: TetrisS ()
 tickTetrisM = do
   g <- get
   if blStatus (block g) == Dropped
-    then buildWallM >> collapseWallM >> newBlockM
+    then buildWallM >> collapseWallM >> newBlockM >> gameOverM
     else moveTetrisM TetrisDown
-
--- | isGameOver g = return $ g {gameover = True}
 
 --
 -- Move the block of a game; keep the current if the move is invalid; mark as Dropped as into the wall.
@@ -277,10 +275,10 @@ tick i g = g {counter = counter g + i}
 
 --
 -- Check if the game is over.
-isGameOver :: Tetris -> Bool
-isGameOver g = not (null w) && ((^. _y) . brPos . head $ w) <= 0
-  where
-    w = sortOn ((^. _y) . brPos) $ wall g
+gameOverM :: TetrisS ()
+gameOverM = do
+  g <- get
+  when (any ((== 0) . (^. _y) . brPos) $ wall g) (put g {gameover = True})
 
 --
 -- Change the speed and the delay of the game
