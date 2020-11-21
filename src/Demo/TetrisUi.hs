@@ -32,7 +32,7 @@ data TETRISNAME = TETRISNAME deriving (Show, Ord, Eq)
 
 data Game = Game
   { pause :: Bool,
-    gameOver :: Bool,
+    gameDone :: Bool,
     {- delay :: Int, -}
     game :: Tetris
   }
@@ -59,7 +59,7 @@ tetrisUi s = hLimit 100 $ center $ pad $ vBox $ map hBox wids
 scoreUi :: Game -> Widget TETRISNAME
 scoreUi s
   | pause s = pad pauseMsg
-  | gameOver s = pad gameOverMsg
+  | gameDone s = pad gameDoneMsg
   | otherwise = pad $ scoreboard <=> fill ' '
   where
     tetris = game s
@@ -71,7 +71,7 @@ scoreUi s
             str ("score: " ++ show (score tetris)),
             str ("speed: " ++ show (speed tetris))
           ]
-    gameOverMsg = center $ str "GAME OVER"
+    gameDoneMsg = center $ str "GAME OVER"
     pauseMsg = center $ str "PAUSE"
 
 handleEvent :: Game -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next Game)
@@ -86,8 +86,10 @@ handleEvent s _ = continue s
 
 handleTetrisEvent :: Game -> TetrisS () -> Game
 handleTetrisEvent s act
-  | pause s || gameOver s = s
-  | otherwise = s {game = execState act $ game s}
+  | pause s || gameDone s = s
+  | otherwise =
+    let tetris' = execState act $ game s
+     in s {game = tetris', gameDone = gameOver tetris'}
 
 {-
  - handleTick :: Tetris -> EventM TETRISNAME (Next Tetris)
@@ -168,4 +170,4 @@ initGame :: TVar Int -> IO Game
 initGame delay = do
   g <- Random.newStdGen
   speed <- readTVarIO delay
-  return $ Game {pause = False, gameOver = False, game = initialTetris {gen = g, speed = speed}}
+  return $ Game {pause = False, gameDone = False, game = initialTetris {gen = g, speed = speed}}

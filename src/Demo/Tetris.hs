@@ -82,7 +82,7 @@ data Tetris = Tetris
     rows :: Int,
     block :: Block,
     wall :: [Brick],
-    gameover :: Bool,
+    gameOver :: Bool,
     counter :: Int,
     score :: Int,
     speed :: Int,
@@ -95,7 +95,7 @@ instance Show Tetris where
       ++ show (rows g)
       ++ show (block g)
       ++ show (wall g)
-      ++ show (gameover g)
+      ++ show (gameOver g)
       ++ show (counter g)
       ++ show (score g)
 
@@ -106,7 +106,7 @@ initialTetris =
       rows = 20,
       block = iBlock,
       wall = testWall,
-      gameover = False,
+      gameOver = False,
       counter = 0,
       score = 0,
       speed = 0,
@@ -272,7 +272,7 @@ tick i g = g {counter = counter g + i}
 gameOverM :: TetrisS ()
 gameOverM = do
   g <- get
-  when (any ((== 0) . (^. _y) . brPos) $ wall g) (put g {gameover = True})
+  when (any ((== 0) . (^. _y) . brPos) $ wall g) (put g {gameOver = True})
 
 --
 -- Map of all blocks, all positions with the blocks attr.
