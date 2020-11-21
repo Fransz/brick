@@ -37,8 +37,8 @@ data BlockStatus = Moving | Dropped deriving (Show, Eq)
 data Block = Block
   { blPos :: Pos,
     blPosRs :: [Pos],
-    name :: String,
-    status :: BlockStatus
+    blName :: String,
+    blStatus :: BlockStatus
   }
   deriving (Show)
 
@@ -51,19 +51,19 @@ data Brick = Brick
 instance Eq Brick where
   (==) b1 b2 = brPos b1 == brPos b2
 
-iBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock", status = Moving}
+iBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], blName = "iblock", blStatus = Moving}
 
-oBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Moving}
+oBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], blName = "oblock", blStatus = Moving}
 
-tBlock = Block {blPos = V2 10 0, blPosRs = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], name = "tblock", status = Moving}
+tBlock = Block {blPos = V2 10 0, blPosRs = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], blName = "tblock", blStatus = Moving}
 
-sBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock", status = Moving}
+sBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], blName = "sblock", blStatus = Moving}
 
-zBlock = Block {blPos = V2 10 0, blPosRs = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock", status = Moving}
+zBlock = Block {blPos = V2 10 0, blPosRs = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], blName = "zblock", blStatus = Moving}
 
-lBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving}
+lBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], blName = "lblock", blStatus = Moving}
 
-jBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock", status = Moving}
+jBlock = Block {blPos = V2 10 0, blPosRs = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], blName = "jblock", blStatus = Moving}
 
 testWall = testRow1 ++ testRow2 ++ testRow3 ++ testRow4 ++ testRow5 ++ testRow6
 
@@ -133,14 +133,14 @@ moveGameM dir = do
 freeFallM :: Tetris ()
 freeFallM = do
   g <- get
-  unless (status (block g) == Dropped) (moveGameM TetrisDown >> freeFallM)
+  unless (blStatus (block g) == Dropped) (moveGameM TetrisDown >> freeFallM)
 
 --
 -- periodic action.
 tickGameM :: Tetris ()
 tickGameM = do
   g <- get
-  if status (block g) == Dropped
+  if blStatus (block g) == Dropped
     then buildWallM >> collapseWallM >> newBlockM
     else moveGameM TetrisDown
 
@@ -154,7 +154,7 @@ moveGame' dir game = game {block = setDropped . keepFromWall . keepInBounds . mo
     curBlock = block game
     keepInBounds b = if dir /= TetrisDown && not (inBounds b 0 (cols game)) then curBlock else b
     keepFromWall b = if dir /= TetrisDown && inWall b (wall game ++ ground game) then curBlock else b
-    setDropped b = if dir == TetrisDown && inWall b (wall game ++ ground game) then curBlock {status = Dropped} else b
+    setDropped b = if dir == TetrisDown && inWall b (wall game ++ ground game) then curBlock {blStatus = Dropped} else b
 
 --
 -- Move a block.
@@ -180,8 +180,8 @@ rotate b = b {blPosRs = map perp $ blPosRs b}
 buildWallM :: Tetris ()
 buildWallM = do
   g <- get
-  let toBricks bl = map (\p -> Brick (p + blPos bl) (name bl)) (blPosRs bl)
-  when (status (block g) == Dropped) $ put (g {wall = wall g ++ toBricks (block g)})
+  let toBricks bl = map (\p -> Brick (p + blPos bl) (blName bl)) (blPosRs bl)
+  when (blStatus (block g) == Dropped) $ put (g {wall = wall g ++ toBricks (block g)})
 
 --
 -- Calculate the ground of the game. I.e. the first invisable row.
@@ -276,7 +276,7 @@ posNameMap g = Map.fromList (posNameTpls (block g) ++ posNameWall (wall g))
 --
 -- List off absolute positions of a block, in a tuple with the blocks attrName
 posNameTpls :: Block -> [(Pos, String)]
-posNameTpls b = map ((,name b) . (+ blPos b)) (blPosRs b)
+posNameTpls b = map ((,blName b) . (+ blPos b)) (blPosRs b)
 
 --
 -- List off absolute positions of bricks, in a tuple with the bricks attrName
