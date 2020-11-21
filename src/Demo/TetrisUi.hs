@@ -14,11 +14,11 @@ import Demo.Tetris
   ( Game (..),
     TetrisDirection (..),
     changeSpeed,
-    freeFall,
+    freeFallM,
     initGame,
-    moveGame,
+    moveGameM,
     posNameMap,
-    tickGame,
+    tickGameM,
   )
 import qualified Graphics.Vty as GV
 import qualified Linear.V2 as LV (V2 (..))
@@ -64,19 +64,21 @@ scoreUi s = pad $ if gameover s then msg else scoreboard <=> fill ' '
 
 handleEvent :: Game -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next Game)
 handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = halt s
-handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ execState (moveGame TetrisLeft) s
-handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ execState (moveGame TetrisRight) s
-handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ execState (moveGame TetrisUp) s
-handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ execState freeFall s
+handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ execState (moveGameM TetrisLeft) s
+handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ execState (moveGameM TetrisRight) s
+handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ execState (moveGameM TetrisUp) s
+handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ execState freeFallM s
 handleEvent s (VtyEvent (GV.EvKey (GV.KChar '+') [])) = handleSpeed s (+)
 handleEvent s (VtyEvent (GV.EvKey (GV.KChar '-') [])) = handleSpeed s (-)
-handleEvent s (AppEvent TetrisEvent) = handleTick s
+handleEvent s (AppEvent TetrisEvent) = continue $ execState tickGameM s
 handleEvent s _ = continue s
 
-handleTick :: Game -> EventM TETRISNAME (Next Game)
-handleTick g = do
-  g' <- liftIO $ tickGame g
-  continue g'
+{-
+ - handleTick :: Game -> EventM TETRISNAME (Next Game)
+ - handleTick g = do
+ -   g' <- liftIO $ tickGame g
+ -   continue g'
+ -}
 
 handleSpeed :: Game -> (Int -> Int -> Int) -> EventM TETRISNAME (Next Game)
 handleSpeed g (+/-) = do

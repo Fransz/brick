@@ -5,9 +5,9 @@ module Demo.Tetris
     Block (..),
     TetrisDirection (..),
     initGame,
-    moveGame,
-    tickGame,
-    freeFall,
+    moveGameM,
+    tickGameM,
+    freeFallM,
     posNameMap,
     changeSpeed,
     Tetris,
@@ -17,7 +17,7 @@ where
 
 import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TVar (TVar, readTVarIO, writeTVar)
-import Control.Monad (unless)
+import Control.Monad (unless, void, when)
 import Control.Monad.Trans.State (State, get, put)
 import Data.List as List (groupBy, sortOn)
 import qualified Data.Map as Map (Map, fromList)
@@ -51,37 +51,35 @@ data Brick = Brick
 instance Eq Brick where
   (==) b1 b2 = brPos b1 == brPos b2
 
-iBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock", status = Moving}
+iBlock = Block {pos = V2 10 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 0 1], name = "iblock", status = Moving}
 
-oBlock = Block {pos = V2 0 0, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Moving}
+oBlock = Block {pos = V2 10 0, poss = [V2 0 (-1), V2 1 (-1), V2 0 0, V2 1 0], name = "oblock", status = Moving}
 
-tBlock = Block {pos = V2 0 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], name = "tblock", status = Moving}
+tBlock = Block {pos = V2 10 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 (-1)], name = "tblock", status = Moving}
 
-sBlock = Block {pos = V2 0 0, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock", status = Moving}
+sBlock = Block {pos = V2 10 0, poss = [V2 0 (-1), V2 1 (-1), V2 (-1) 0, V2 0 0], name = "sblock", status = Moving}
 
-zBlock = Block {pos = V2 0 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock", status = Moving}
+zBlock = Block {pos = V2 10 0, poss = [V2 (-1) (-1), V2 0 (-1), V2 0 0, V2 1 0], name = "zblock", status = Moving}
 
-lBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving}
+lBlock = Block {pos = V2 10 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 1 0], name = "lblock", status = Moving}
 
-jBlock = Block {pos = V2 0 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock", status = Moving}
+jBlock = Block {pos = V2 10 0, poss = [V2 0 (-2), V2 0 (-1), V2 0 0, V2 (-1) 0], name = "jblock", status = Moving}
 
-{-
- - testWall = testRow1 ++ testRow2 ++ testRow3 ++ testRow4 ++ testRow5 ++ testRow6
- -
- - testRow1 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 19) ++ (take 7 . makeRow $ V2 9 19)
- -
- - testRow2 = map (`Brick` "oblock") $ (take 3 . makeRow $ V2 0 18) ++ (take 3 . makeRow $ V2 5 18) ++ (take 7 . makeRow $ V2 9 18)
- -
- - testRow3 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 17) ++ (take 7 . makeRow $ V2 9 17)
- -
- - testRow4 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 16) ++ (take 3 . makeRow $ V2 9 16) ++ (take 3 . makeRow $ V2 13 16)
- -
- - testRow5 = map (`Brick` "oblock") $ (take 4 . makeRow $ V2 2 15) ++ (take 4 . makeRow $ V2 12 15)
- -
- - testRow6 = map (`Brick` "oblock") $ (take 2 . makeRow $ V2 2 14) ++ (take 1 . makeRow $ V2 12 14)
- -
- - makeRow = iterate (\v -> V2 (v ^. _x + 1) (v ^. _y))
- -}
+testWall = testRow1 ++ testRow2 ++ testRow3 ++ testRow4 ++ testRow5 ++ testRow6
+
+testRow1 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 19) ++ (take 7 . makeRow $ V2 9 19)
+
+testRow2 = map (`Brick` "oblock") $ (take 3 . makeRow $ V2 0 18) ++ (take 3 . makeRow $ V2 5 18) ++ (take 7 . makeRow $ V2 9 18)
+
+testRow3 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 17) ++ (take 7 . makeRow $ V2 9 17)
+
+testRow4 = map (`Brick` "oblock") $ (take 8 . makeRow $ V2 0 16) ++ (take 3 . makeRow $ V2 9 16) ++ (take 3 . makeRow $ V2 13 16)
+
+testRow5 = map (`Brick` "oblock") $ (take 4 . makeRow $ V2 2 15) ++ (take 4 . makeRow $ V2 12 15)
+
+testRow6 = map (`Brick` "oblock") $ (take 2 . makeRow $ V2 2 14) ++ (take 1 . makeRow $ V2 12 14)
+
+makeRow = iterate (\v -> V2 (v ^. _x + 1) (v ^. _y))
 
 data Game = Game
   { cols :: Int,
@@ -112,7 +110,7 @@ initialGame =
     { cols = 16,
       rows = 20,
       block = iBlock,
-      wall = [],
+      wall = testWall,
       gameover = False,
       counter = 0,
       score = 0,
@@ -124,6 +122,30 @@ initialGame =
 initialGame' :: Tetris Game
 initialGame' = return initialGame
 
+moveGameM :: TetrisDirection -> Tetris ()
+moveGameM dir = do
+  g <- get
+  put $ moveGame' dir g
+  return ()
+
+--
+-- Drop the block of a game until it is Dropped in the wall.
+freeFallM :: Tetris ()
+freeFallM = do
+  g <- get
+  unless (status (block g) == Dropped) (moveGameM TetrisDown >> freeFallM)
+
+--
+-- periodic action.
+tickGameM :: Tetris ()
+tickGameM = do
+  g <- get
+  if status (block g) == Dropped
+    then buildWallM >>= collapseWallM >>= newBlockM
+    else moveGameM TetrisDown
+
+-- | isGameOver g = return $ g {gameover = True}
+
 --
 -- Move the block of a game; keep the current if the move is invalid; mark as Dropped as into the wall.
 moveGame' :: TetrisDirection -> Game -> Game
@@ -133,12 +155,6 @@ moveGame' dir game = game {block = setDropped . keepFromWall . keepInBounds . mo
     keepInBounds b = if dir /= TetrisDown && not (inBounds b 0 (cols game)) then curBlock else b
     keepFromWall b = if dir /= TetrisDown && inWall b (wall game ++ ground game) then curBlock else b
     setDropped b = if dir == TetrisDown && inWall b (wall game ++ ground game) then curBlock {status = Dropped} else b
-
-moveGame :: TetrisDirection -> Tetris ()
-moveGame dir = do
-  g <- get
-  put $ moveGame' dir g
-  return ()
 
 --
 -- Move a block.
@@ -160,26 +176,15 @@ rotate :: Block -> Block
 rotate b = b {poss = map perp $ poss b}
 
 --
--- Drop the block of a game until it is Dropped in the wall.
-{-
- - freeFall :: Game -> Game
- - freeFall g = case status $ block g of
- -   Dropped -> g
- -   Moving -> freeFall $ moveGame TetrisDown g
- -}
-freeFall :: Tetris ()
-freeFall = do
-  g <- get
-  unless (status (block g) == Dropped) (moveGame TetrisDown >> freeFall)
-
---
 -- add a block to the wall
-buildWall :: Game -> Game
-buildWall g = if status b == Dropped then g {wall = w ++ map toBrick (poss b)} else g
-  where
-    w = wall g
-    b = block g
-    toBrick p = Brick (p + pos b) (name b)
+buildWallM :: Tetris Game
+buildWallM = do
+  g <- get
+  let toBricks bl = map (\p -> Brick (p + pos bl) (name bl)) (poss bl)
+      g' = g {wall = wall g ++ toBricks (block g)}
+  if status (block g) == Dropped
+    then put g' >> return g'
+    else return g
 
 --
 -- Calculate the ground of the game. I.e. the first invisable row.
@@ -199,27 +204,19 @@ inWall :: Block -> [Brick] -> Bool
 inWall b w = any ((`elem` map brPos w) . (+ pos b)) (poss b)
 
 --
--- periodic action.
-tickGame :: Game -> IO Game
-tickGame g
-  | isGameOver g = return $ g {gameover = True}
-  | status (block g) == Dropped = setDelay . newBlock . collapseWall . buildWall $ g
-  | otherwise = return $ tick 1 . moveGame' TetrisDown $ g
-
---
 -- ticker.
 tick :: Int -> Game -> Game
 tick i g = g {counter = counter g + i}
 
 --
 -- Create a new random block until it is inbounds
-newBlock :: Game -> Game
-newBlock g =
+newBlockM :: Game -> Tetris ()
+newBlockM g = do
   let blocks = [iBlock, oBlock, tBlock, sBlock, zBlock, lBlock, jBlock]
       (pos, gen') = Random.randomR (V2 0 0, V2 (cols g - 1) 0) (gen g)
       (idx, gen'') = Random.randomR (0, 6) gen'
       block = (blocks !! idx) {pos = pos}
-   in if inBounds block 0 (cols g) then g {block = block, gen = gen''} else newBlock g {gen = gen''}
+  if inBounds block 0 (cols g) then put $ g {block = block, gen = gen''} else newBlockM g {gen = gen''}
 
 --
 -- Check if the game is over.
@@ -230,13 +227,14 @@ isGameOver g = not (null w) && ((^. _y) . brPos . head $ w) <= 0
 
 --
 -- Collapse wall
-collapseWall :: Game -> Game
-collapseWall g =
+collapseWallM :: Game -> Tetris Game
+collapseWallM g = do
   let wall' = collapseWall' (cols g) (groupWall $ wall g)
       dRows = (length (wall g) - length wall') `quot` cols g
       score' = 10 ^ dRows + score g
       speed' = abs $ speed g - truncate (fromIntegral (dRows * speed g) / 20)
-   in g {wall = wall', score = score', speed = speed'}
+      g' = g {wall = wall', score = score', speed = speed'}
+  put g' >> return g'
 
 --
 -- Remove full rows from the wall.
@@ -291,4 +289,4 @@ initGame :: TVar Int -> IO Game
 initGame delay = do
   g <- Random.newStdGen
   speed <- readTVarIO delay
-  return $ newBlock initialGame {gen = g, delay = delay, speed = speed}
+  return $ initialGame {gen = g, delay = delay, speed = speed}
