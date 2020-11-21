@@ -1,17 +1,17 @@
 {-# LANGUAGE TupleSections #-}
 
 module Demo.Tetris
-  ( Game (..),
+  ( Tetris (..),
     Block (..),
     TetrisDirection (..),
-    initGame,
-    moveGameM,
-    tickGameM,
+    initTetris,
+    moveTetrisM,
+    tickTetrisM,
     freeFallM,
     posNameMap,
     changeSpeed,
-    Tetris,
-    initialGame,
+    TetrisS,
+    initialTetris,
   )
 where
 
@@ -26,7 +26,7 @@ import Lens.Micro ((^.))
 import Linear.V2 (V2 (..), perp, _x, _y)
 import qualified System.Random as Random (Random (randomR), StdGen, newStdGen)
 
-type Tetris = State Game
+type TetrisS = State Tetris
 
 type Pos = V2 Int
 
@@ -81,7 +81,7 @@ testRow6 = map (`Brick` "oblock") $ (take 2 . makeRow $ V2 2 14) ++ (take 1 . ma
 
 makeRow = iterate (\v -> V2 (v ^. _x + 1) (v ^. _y))
 
-data Game = Game
+data Tetris = Tetris
   { cols :: Int,
     rows :: Int,
     block :: Block,
@@ -94,7 +94,7 @@ data Game = Game
     delay :: TVar Int
   }
 
-instance Show Game where
+instance Show Tetris where
   show g =
     show (cols g)
       ++ show (rows g)
@@ -104,9 +104,9 @@ instance Show Game where
       ++ show (counter g)
       ++ show (score g)
 
-initialGame :: Game
-initialGame =
-  Game
+initialTetris :: Tetris
+initialTetris =
+  Tetris
     { cols = 16,
       rows = 20,
       block = iBlock,
@@ -119,34 +119,34 @@ initialGame =
       delay = undefined
     }
 
-moveGameM :: TetrisDirection -> Tetris ()
-moveGameM dir = do
+moveTetrisM :: TetrisDirection -> TetrisS ()
+moveTetrisM dir = do
   g <- get
-  put $ moveGame' dir g
+  put $ moveTetris' dir g
   return ()
 
 --
 -- Drop the block of a game until it is Dropped in the wall.
-freeFallM :: Tetris ()
+freeFallM :: TetrisS ()
 freeFallM = do
   g <- get
-  unless (blStatus (block g) == Dropped) (moveGameM TetrisDown >> freeFallM)
+  unless (blStatus (block g) == Dropped) (moveTetrisM TetrisDown >> freeFallM)
 
 --
 -- periodic action.
-tickGameM :: Tetris ()
-tickGameM = do
+tickTetrisM :: TetrisS ()
+tickTetrisM = do
   g <- get
   if blStatus (block g) == Dropped
     then buildWallM >> collapseWallM >> newBlockM
-    else moveGameM TetrisDown
+    else moveTetrisM TetrisDown
 
 -- | isGameOver g = return $ g {gameover = True}
 
 --
 -- Move the block of a game; keep the current if the move is invalid; mark as Dropped as into the wall.
-moveGame' :: TetrisDirection -> Game -> Game
-moveGame' dir game = game {block = setDropped . keepFromWall . keepInBounds (0, cols game - 1) . moveBlock dir $ curBlock}
+moveTetris' :: TetrisDirection -> Tetris -> Tetris
+moveTetris' dir game = game {block = setDropped . keepFromWall . keepInBounds (0, cols game - 1) . moveBlock dir $ curBlock}
   where
     curBlock = block game
     keepFromWall b = if dir /= TetrisDown && inWall b (wall game ++ ground game) then curBlock else b
@@ -204,7 +204,7 @@ keepInBounds (min, max) b
 
 --
 -- Calculate the ground of the game. I.e. the first invisable row.
-ground :: Game -> [Brick]
+ground :: Tetris -> [Brick]
 ground game = map (`Brick` "") $ take (cols game) . iterate (\v -> V2 (v ^. _x + 1) (rows game)) $ V2 0 (rows game)
 
 --
@@ -219,14 +219,14 @@ toBricks bl = map (\p -> Brick p (blName bl)) $ blPosAs bl
 
 --
 -- add a block to the wall
-buildWallM :: Tetris ()
+buildWallM :: TetrisS ()
 buildWallM = do
   g <- get
   when (blStatus (block g) == Dropped) $ put (g {wall = wall g ++ toBricks (block g)})
 
 --
 -- Collapse wall
-collapseWallM :: Tetris ()
+collapseWallM :: TetrisS ()
 collapseWallM = do
   g <- get
   let wall' = collapseWall' (cols g) (groupWall $ wall g)
@@ -260,7 +260,7 @@ blPosAs b = map (+ blPos b) (blPosRs b)
 
 --
 -- Create a new random block until it is inbounds
-newBlockM :: Tetris ()
+newBlockM :: TetrisS ()
 newBlockM = do
   g <- get
   let blocks = [iBlock, oBlock, tBlock, sBlock, zBlock, lBlock, jBlock]
@@ -272,19 +272,19 @@ newBlockM = do
 
 --
 -- ticker.
-tick :: Int -> Game -> Game
+tick :: Int -> Tetris -> Tetris
 tick i g = g {counter = counter g + i}
 
 --
 -- Check if the game is over.
-isGameOver :: Game -> Bool
+isGameOver :: Tetris -> Bool
 isGameOver g = not (null w) && ((^. _y) . brPos . head $ w) <= 0
   where
     w = sortOn ((^. _y) . brPos) $ wall g
 
 --
 -- Change the speed and the delay of the game
-changeSpeed :: Game -> (Int -> Int -> Int) -> IO Game
+changeSpeed :: Tetris -> (Int -> Int -> Int) -> IO Tetris
 changeSpeed g (+/-) = do
   d <- readTVarIO (delay g)
   atomically $ writeTVar (delay g) $ (+/-) d 10000
@@ -292,14 +292,14 @@ changeSpeed g (+/-) = do
 
 --
 -- Set the delay of the game with the speed.
-setDelay :: Game -> IO Game
+setDelay :: Tetris -> IO Tetris
 setDelay g = do
   atomically $ writeTVar (delay g) (speed g)
   return g
 
 --
 -- Map of all blocks, all positions with the blocks attr.
-posNameMap :: Game -> Map.Map Pos String
+posNameMap :: Tetris -> Map.Map Pos String
 posNameMap g = Map.fromList (posNameTpls (block g) ++ posNameWall (wall g))
 
 --
@@ -314,8 +314,8 @@ posNameWall = map (\b -> (brPos b, brName b))
 
 --
 -- Initialize the game. I.e. create a stdGen
-initGame :: TVar Int -> IO Game
-initGame delay = do
+initTetris :: TVar Int -> IO Tetris
+initTetris delay = do
   g <- Random.newStdGen
   speed <- readTVarIO delay
-  return $ initialGame {gen = g, delay = delay, speed = speed}
+  return $ initialTetris {gen = g, delay = delay, speed = speed}

@@ -11,14 +11,14 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.State (execState)
 import qualified Data.Map as Map (findWithDefault)
 import Demo.Tetris
-  ( Game (..),
+  ( Tetris (..),
     TetrisDirection (..),
     changeSpeed,
     freeFallM,
-    initGame,
-    moveGameM,
+    initTetris,
+    moveTetrisM,
     posNameMap,
-    tickGameM,
+    tickTetrisM,
   )
 import qualified Graphics.Vty as GV
 import qualified Linear.V2 as LV (V2 (..))
@@ -31,10 +31,10 @@ data TETRISNAME = TETRISNAME deriving (Show, Ord, Eq)
 
 data Cell = TetrisCell | AppleCell | GridCell deriving (Show)
 
-ui :: Game -> [Widget TETRISNAME]
+ui :: Tetris -> [Widget TETRISNAME]
 ui s = [borderWithLabel (str "tetris") $ tetrisUi s <+> scoreUi s]
 
-tetrisUi :: Game -> Widget TETRISNAME
+tetrisUi :: Tetris -> Widget TETRISNAME
 tetrisUi s = hLimit 100 $ center $ pad $ vBox $ map hBox wids
   where
     pad w = padLeft (Pad 1) $ padTopBottom 1 $ border w
@@ -49,7 +49,7 @@ tetrisUi s = hLimit 100 $ center $ pad $ vBox $ map hBox wids
     wid :: AttrName -> Widget TETRISNAME
     wid a = withAttr a $ str "  "
 
-scoreUi :: Game -> Widget TETRISNAME
+scoreUi :: Tetris -> Widget TETRISNAME
 scoreUi s = pad $ if gameover s then msg else scoreboard <=> fill ' '
   where
     pad w = padLeft (Pad 10) $ padAll 1 $ vLimit 8 $ borderWithLabel (str "score") $ padAll 1 w
@@ -62,25 +62,25 @@ scoreUi s = pad $ if gameover s then msg else scoreboard <=> fill ' '
           ]
     msg = center $ str "GAME OVER"
 
-handleEvent :: Game -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next Game)
+handleEvent :: Tetris -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next Tetris)
 handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = halt s
-handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ execState (moveGameM TetrisLeft) s
-handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ execState (moveGameM TetrisRight) s
-handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ execState (moveGameM TetrisUp) s
+handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ execState (moveTetrisM TetrisLeft) s
+handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ execState (moveTetrisM TetrisRight) s
+handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ execState (moveTetrisM TetrisUp) s
 handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ execState freeFallM s
 handleEvent s (VtyEvent (GV.EvKey (GV.KChar '+') [])) = handleSpeed s (+)
 handleEvent s (VtyEvent (GV.EvKey (GV.KChar '-') [])) = handleSpeed s (-)
-handleEvent s (AppEvent TetrisEvent) = continue $ execState tickGameM s
+handleEvent s (AppEvent TetrisEvent) = continue $ execState tickTetrisM s
 handleEvent s _ = continue s
 
 {-
- - handleTick :: Game -> EventM TETRISNAME (Next Game)
+ - handleTick :: Tetris -> EventM TETRISNAME (Next Tetris)
  - handleTick g = do
- -   g' <- liftIO $ tickGame g
+ -   g' <- liftIO $ tickTetris g
  -   continue g'
  -}
 
-handleSpeed :: Game -> (Int -> Int -> Int) -> EventM TETRISNAME (Next Game)
+handleSpeed :: Tetris -> (Int -> Int -> Int) -> EventM TETRISNAME (Next Tetris)
 handleSpeed g (+/-) = do
   g' <- liftIO $ changeSpeed g (+/-)
   continue g'
@@ -100,7 +100,7 @@ aMap =
       (attrName "wallblock", bg GV.yellow)
     ]
 
-theApp :: App Game TetrisEvent TETRISNAME
+theApp :: App Tetris TetrisEvent TETRISNAME
 theApp =
   App
     { appDraw = ui,
@@ -110,7 +110,7 @@ theApp =
       appChooseCursor = neverShowCursor
     }
 
-startApp :: IO Game
+startApp :: IO Tetris
 startApp = do
   eventChannel <- newBChan 10
   delay <- newTVarIO 1000000
@@ -120,7 +120,7 @@ startApp = do
   let buildVty = GV.mkVty GV.defaultConfig
   initialVty <- buildVty
 
-  state <- initGame delay
+  state <- initTetris delay
 
   customMain initialVty buildVty (Just eventChannel) theApp state
 
