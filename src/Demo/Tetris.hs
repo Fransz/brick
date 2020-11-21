@@ -4,19 +4,15 @@ module Demo.Tetris
   ( Tetris (..),
     Block (..),
     TetrisDirection (..),
-    initTetris,
+    initialTetris,
     moveTetrisM,
     tickTetrisM,
     freeFallM,
     posNameMap,
-    changeSpeed,
     TetrisS,
-    initialTetris,
   )
 where
 
-import Control.Concurrent.STM (atomically)
-import Control.Concurrent.STM.TVar (TVar, readTVarIO, writeTVar)
 import Control.Monad (unless, when)
 import Control.Monad.Trans.State (State, get, put)
 import Data.List as List (groupBy, sortOn)
@@ -24,7 +20,7 @@ import qualified Data.Map as Map (Map, fromList)
 import qualified Data.Ord (Down (..))
 import Lens.Micro ((^.))
 import Linear.V2 (V2 (..), perp, _x, _y)
-import qualified System.Random as Random (Random (randomR), StdGen, newStdGen)
+import qualified System.Random as Random (Random (randomR), StdGen)
 
 type TetrisS = State Tetris
 
@@ -90,8 +86,7 @@ data Tetris = Tetris
     counter :: Int,
     score :: Int,
     speed :: Int,
-    gen :: Random.StdGen,
-    delay :: TVar Int
+    gen :: Random.StdGen
   }
 
 instance Show Tetris where
@@ -115,8 +110,7 @@ initialTetris =
       counter = 0,
       score = 0,
       speed = 0,
-      gen = undefined,
-      delay = undefined
+      gen = undefined
     }
 
 moveTetrisM :: TetrisDirection -> TetrisS ()
@@ -281,21 +275,6 @@ gameOverM = do
   when (any ((== 0) . (^. _y) . brPos) $ wall g) (put g {gameover = True})
 
 --
--- Change the speed and the delay of the game
-changeSpeed :: Tetris -> (Int -> Int -> Int) -> IO Tetris
-changeSpeed g (+/-) = do
-  d <- readTVarIO (delay g)
-  atomically $ writeTVar (delay g) $ (+/-) d 10000
-  return g {speed = (+/-) d 10000}
-
---
--- Set the delay of the game with the speed.
-setDelay :: Tetris -> IO Tetris
-setDelay g = do
-  atomically $ writeTVar (delay g) (speed g)
-  return g
-
---
 -- Map of all blocks, all positions with the blocks attr.
 posNameMap :: Tetris -> Map.Map Pos String
 posNameMap g = Map.fromList (posNameTpls (block g) ++ posNameWall (wall g))
@@ -309,11 +288,3 @@ posNameTpls b = map (,blName b) $ blPosAs b
 -- List off absolute positions of bricks, in a tuple with the bricks attrName
 posNameWall :: [Brick] -> [(Pos, String)]
 posNameWall = map (\b -> (brPos b, brName b))
-
---
--- Initialize the game. I.e. create a stdGen
-initTetris :: TVar Int -> IO Tetris
-initTetris delay = do
-  g <- Random.newStdGen
-  speed <- readTVarIO delay
-  return $ initialTetris {gen = g, delay = delay, speed = speed}

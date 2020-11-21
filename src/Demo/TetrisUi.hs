@@ -13,15 +13,16 @@ import qualified Data.Map as Map (findWithDefault)
 import Demo.Tetris
   ( Tetris (..),
     TetrisDirection (..),
-    changeSpeed,
+    TetrisS,
     freeFallM,
-    initTetris,
+    initialTetris,
     moveTetrisM,
     posNameMap,
     tickTetrisM,
   )
 import qualified Graphics.Vty as GV
 import qualified Linear.V2 as LV (V2 (..))
+import qualified System.Random as Random (newStdGen)
 
 type Pos = LV.V2 Int
 
@@ -29,61 +30,85 @@ data TetrisEvent = TetrisEvent
 
 data TETRISNAME = TETRISNAME deriving (Show, Ord, Eq)
 
-data Cell = TetrisCell | AppleCell | GridCell deriving (Show)
+data Game = Game
+  { pause :: Bool,
+    gameOver :: Bool,
+    {- delay :: Int, -}
+    game :: Tetris
+  }
 
-ui :: Tetris -> [Widget TETRISNAME]
+ui :: Game -> [Widget TETRISNAME]
 ui s = [borderWithLabel (str "tetris") $ tetrisUi s <+> scoreUi s]
 
-tetrisUi :: Tetris -> Widget TETRISNAME
+tetrisUi :: Game -> Widget TETRISNAME
 tetrisUi s = hLimit 100 $ center $ pad $ vBox $ map hBox wids
   where
+    tetris = game s
     pad w = padLeft (Pad 1) $ padTopBottom 1 $ border w
 
-    rs = [0 .. rows s - 1]
-    wids = map (\y -> [draw (LV.V2 x y) | x <- [0 .. cols s - 1]]) rs
+    rs = [0 .. rows tetris - 1]
+    wids = map (\y -> [draw (LV.V2 x y) | x <- [0 .. cols tetris - 1]]) rs
     draw = wid . cellAttr
 
     cellAttr :: Pos -> AttrName
-    cellAttr p = attrName $ Map.findWithDefault "grid" p $ posNameMap s
+    cellAttr p = attrName $ Map.findWithDefault "grid" p $ posNameMap tetris
 
     wid :: AttrName -> Widget TETRISNAME
     wid a = withAttr a $ str "  "
 
-scoreUi :: Tetris -> Widget TETRISNAME
-scoreUi s = pad $ if gameover s then msg else scoreboard <=> fill ' '
+scoreUi :: Game -> Widget TETRISNAME
+scoreUi s = pad $ if gameOver s then msg else scoreboard <=> fill ' '
   where
+    tetris = game s
     pad w = padLeft (Pad 10) $ padAll 1 $ vLimit 8 $ borderWithLabel (str "score") $ padAll 1 w
     scoreboard =
       hCenter $
         vBox
-          [ str ("count: " ++ show (counter s)),
-            str ("score: " ++ show (score s)),
-            str ("speed: " ++ show (speed s))
+          [ str ("count: " ++ show (counter tetris)),
+            str ("score: " ++ show (score tetris)),
+            str ("speed: " ++ show (speed tetris))
           ]
     msg = center $ str "GAME OVER"
 
-handleEvent :: Tetris -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next Tetris)
+handleEvent :: Game -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next Game)
 handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = halt s
-handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ execState (moveTetrisM TetrisLeft) s
-handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ execState (moveTetrisM TetrisRight) s
-handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ execState (moveTetrisM TetrisUp) s
-handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ execState freeFallM s
-handleEvent s (VtyEvent (GV.EvKey (GV.KChar '+') [])) = handleSpeed s (+)
-handleEvent s (VtyEvent (GV.EvKey (GV.KChar '-') [])) = handleSpeed s (-)
-handleEvent s (AppEvent TetrisEvent) = continue $ execState tickTetrisM s
+handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ handleTetrisEvent s (moveTetrisM TetrisLeft)
+handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ handleTetrisEvent s (moveTetrisM TetrisRight)
+handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ handleTetrisEvent s (moveTetrisM TetrisUp)
+handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ handleTetrisEvent s freeFallM
+handleEvent s (AppEvent TetrisEvent) = continue $ handleTetrisEvent s tickTetrisM
 handleEvent s _ = continue s
+
+handleTetrisEvent :: Game -> TetrisS () -> Game
+handleTetrisEvent s act = s {game = execState act $ game s}
 
 {-
  - handleTick :: Tetris -> EventM TETRISNAME (Next Tetris)
  - handleTick g = do
  -   g' <- liftIO $ tickTetris g
  -   continue g'
- -}
+handleEvent s (VtyEvent (GV.EvKey (GV.KChar '+') [])) = handleSpeed s (+)
+handleEvent s (VtyEvent (GV.EvKey (GV.KChar '-') [])) = handleSpeed s (-)
+--
+-- Change the speed and the delay of the game
+changeSpeed :: Tetris -> (Int -> Int -> Int) -> IO Tetris
+changeSpeed g (+/-) = do
+  d <- readTVarIO (delay g)
+  atomically $ writeTVar (delay g) $ (+/-) d 10000
+  return g {speed = (+/-) d 10000}
+
+--
+-- Set the delay of the game with the speed.
+setDelay :: Tetris -> IO Tetris
+setDelay g = do
+  atomically $ writeTVar (delay g) (speed g)
+  return g
 
 handleSpeed :: Tetris -> (Int -> Int -> Int) -> EventM TETRISNAME (Next Tetris)
 handleSpeed g (+/-) = do
   g' <- liftIO $ changeSpeed g (+/-)
   continue g'
+ -}
 
 aMap :: AttrMap
 aMap =
@@ -100,7 +125,7 @@ aMap =
       (attrName "wallblock", bg GV.yellow)
     ]
 
-theApp :: App Tetris TetrisEvent TETRISNAME
+theApp :: App Game TetrisEvent TETRISNAME
 theApp =
   App
     { appDraw = ui,
@@ -110,7 +135,7 @@ theApp =
       appChooseCursor = neverShowCursor
     }
 
-startApp :: IO Tetris
+startApp :: IO Game
 startApp = do
   eventChannel <- newBChan 10
   delay <- newTVarIO 1000000
@@ -120,7 +145,7 @@ startApp = do
   let buildVty = GV.mkVty GV.defaultConfig
   initialVty <- buildVty
 
-  state <- initTetris delay
+  state <- initGame delay
 
   customMain initialVty buildVty (Just eventChannel) theApp state
 
@@ -129,3 +154,11 @@ sleepApp chan delay = forever $ do
   writeBChan chan TetrisEvent
   d <- readTVarIO delay
   threadDelay d
+
+--
+-- Initialize the game. I.e. create a stdGen
+initGame :: TVar Int -> IO Game
+initGame delay = do
+  g <- Random.newStdGen
+  speed <- readTVarIO delay
+  return $ Game {pause = False, gameOver = False, game = initialTetris {gen = g, speed = speed}}
