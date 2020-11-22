@@ -5,7 +5,8 @@ import Brick.BChan
 import Brick.Widgets.Border
 import Brick.Widgets.Center
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.STM.TVar (TVar, newTVarIO, readTVarIO)
+import Control.Concurrent.STM (atomically)
+import Control.Concurrent.STM.TVar (TVar, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (forever)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.State (execState)
@@ -33,7 +34,7 @@ data TETRISNAME = TETRISNAME deriving (Show, Ord, Eq)
 data Game = Game
   { pause :: Bool,
     gameDone :: Bool,
-    {- delay :: Int, -}
+    delay :: TVar Int,
     game :: Tetris
   }
 
@@ -63,7 +64,7 @@ scoreUi s
   | otherwise = pad $ scoreboard <=> fill ' '
   where
     tetris = game s
-    pad w = padLeft (Pad 10) $ padAll 1 $ vLimit 8 $ borderWithLabel (str "score") $ padAll 1 w
+    pad w = padLeft (Pad 10) $ padRight (Pad 10) $ padAll 1 $ vLimit 8 $ borderWithLabel (str "score") $ padAll 1 w
     scoreboard =
       hCenter $
         vBox
@@ -82,41 +83,46 @@ handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ handleTetrisEvent 
 handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ handleTetrisEvent s (moveTetrisM TetrisUp)
 handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ handleTetrisEvent s freeFallM
 handleEvent s (AppEvent TetrisEvent) = continue $ handleTetrisEvent s tickTetrisM
+handleEvent s (VtyEvent (GV.EvKey (GV.KChar '+') [])) = handleDelay s (+)
+handleEvent s (VtyEvent (GV.EvKey (GV.KChar '-') [])) = handleDelay s (-)
 handleEvent s _ = continue s
 
 handleTetrisEvent :: Game -> TetrisS () -> Game
-handleTetrisEvent s act
+handleTetrisEvent s stateAct
   | pause s || gameDone s = s
   | otherwise =
-    let tetris' = execState act $ game s
+    let tetris' = execState stateAct $ game s
+        speed' = speed tetris'
      in s {game = tetris', gameDone = gameOver tetris'}
+
+handleDelay :: Game -> (Int -> Int -> Int) -> EventM TETRISNAME (Next Game)
+handleDelay g (+/-) = do
+  g' <- liftIO $ changeDelay g (+/-)
+  continue g'
+
+changeDelay :: Game -> (Int -> Int -> Int) -> IO Game
+changeDelay g (+/-) = do
+  d <- readTVarIO (delay g)
+  let s = (+/-) d 10000
+  atomically $ writeTVar (delay g) s
+  return g {game = (game g) {speed = s}}
+
+setDelay :: Game -> IO Game
+setDelay g = do
+  atomically $ writeTVar (delay g) (speed $ game g)
+  return g
 
 {-
  - handleTick :: Tetris -> EventM TETRISNAME (Next Tetris)
  - handleTick g = do
  -   g' <- liftIO $ tickTetris g
  -   continue g'
-handleEvent s (VtyEvent (GV.EvKey (GV.KChar '+') [])) = handleSpeed s (+)
-handleEvent s (VtyEvent (GV.EvKey (GV.KChar '-') [])) = handleSpeed s (-)
 --
 -- Change the speed and the delay of the game
-changeSpeed :: Tetris -> (Int -> Int -> Int) -> IO Tetris
-changeSpeed g (+/-) = do
-  d <- readTVarIO (delay g)
-  atomically $ writeTVar (delay g) $ (+/-) d 10000
-  return g {speed = (+/-) d 10000}
 
 --
 -- Set the delay of the game with the speed.
-setDelay :: Tetris -> IO Tetris
-setDelay g = do
-  atomically $ writeTVar (delay g) (speed g)
-  return g
 
-handleSpeed :: Tetris -> (Int -> Int -> Int) -> EventM TETRISNAME (Next Tetris)
-handleSpeed g (+/-) = do
-  g' <- liftIO $ changeSpeed g (+/-)
-  continue g'
  -}
 
 aMap :: AttrMap
@@ -168,6 +174,6 @@ sleepApp chan delay = forever $ do
 -- Initialize the game. I.e. create a stdGen
 initGame :: TVar Int -> IO Game
 initGame delay = do
-  g <- Random.newStdGen
+  gen <- Random.newStdGen
   speed <- readTVarIO delay
-  return $ Game {pause = False, gameDone = False, game = initialTetris {gen = g, speed = speed}}
+  return $ Game {pause = False, gameDone = False, delay = delay, game = initialTetris {gen = gen, speed = speed}}
