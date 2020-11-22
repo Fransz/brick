@@ -70,7 +70,7 @@ scoreUi s
         vBox
           [ str ("count: " ++ show (counter tetris)),
             str ("score: " ++ show (score tetris)),
-            str ("speed: " ++ show (speed tetris))
+            str ("delay: " ++ show (speed tetris))
           ]
     gameDoneMsg = center $ str "GAME OVER"
     pauseMsg = center $ str "PAUSE"
@@ -78,22 +78,22 @@ scoreUi s
 handleEvent :: Game -> BrickEvent TETRISNAME TetrisEvent -> EventM TETRISNAME (Next Game)
 handleEvent s (VtyEvent (GV.EvKey (GV.KChar 'p') [])) = continue $ s {pause = not $ pause s}
 handleEvent s (VtyEvent (GV.EvKey GV.KEsc [])) = halt s
-handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = continue $ handleTetrisEvent s (moveTetrisM TetrisLeft)
-handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = continue $ handleTetrisEvent s (moveTetrisM TetrisRight)
-handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = continue $ handleTetrisEvent s (moveTetrisM TetrisUp)
-handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = continue $ handleTetrisEvent s freeFallM
-handleEvent s (AppEvent TetrisEvent) = continue $ handleTetrisEvent s tickTetrisM
+handleEvent s (VtyEvent (GV.EvKey GV.KLeft [])) = handleTetrisEvent s (moveTetrisM TetrisLeft)
+handleEvent s (VtyEvent (GV.EvKey GV.KRight [])) = handleTetrisEvent s (moveTetrisM TetrisRight)
+handleEvent s (VtyEvent (GV.EvKey GV.KUp [])) = handleTetrisEvent s (moveTetrisM TetrisUp)
+handleEvent s (VtyEvent (GV.EvKey GV.KDown [])) = handleTetrisEvent s freeFallM
+handleEvent s (AppEvent TetrisEvent) = handleTetrisEvent s tickTetrisM
 handleEvent s (VtyEvent (GV.EvKey (GV.KChar '+') [])) = handleDelay s (+)
 handleEvent s (VtyEvent (GV.EvKey (GV.KChar '-') [])) = handleDelay s (-)
 handleEvent s _ = continue s
 
-handleTetrisEvent :: Game -> TetrisS () -> Game
+handleTetrisEvent :: Game -> TetrisS () -> EventM TETRISNAME (Next Game)
 handleTetrisEvent s stateAct
-  | pause s || gameDone s = s
-  | otherwise =
+  | pause s || gameDone s = continue s
+  | otherwise = do
     let tetris' = execState stateAct $ game s
-        speed' = speed tetris'
-     in s {game = tetris', gameDone = gameOver tetris'}
+    s' <- liftIO $ setDelay s $ speed tetris'
+    continue $ s' {game = tetris', gameDone = gameOver tetris'}
 
 handleDelay :: Game -> (Int -> Int -> Int) -> EventM TETRISNAME (Next Game)
 handleDelay g (+/-) = do
@@ -107,10 +107,10 @@ changeDelay g (+/-) = do
   atomically $ writeTVar (delay g) s
   return g {game = (game g) {speed = s}}
 
-setDelay :: Game -> IO Game
-setDelay g = do
-  atomically $ writeTVar (delay g) (speed $ game g)
-  return g
+setDelay :: Game -> Int -> IO Game
+setDelay s d = do
+  atomically $ writeTVar (delay s) d
+  return s
 
 {-
  - handleTick :: Tetris -> EventM TETRISNAME (Next Tetris)
