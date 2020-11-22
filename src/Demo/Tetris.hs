@@ -102,10 +102,10 @@ instance Show Tetris where
 initialTetris :: Tetris
 initialTetris =
   Tetris
-    { cols = 16,
-      rows = 20,
+    { cols = 17,
+      rows = 25,
       block = iBlock,
-      wall = testWall,
+      wall = [],
       gameOver = False,
       counter = 0,
       score = 0,

@@ -150,6 +150,16 @@ theApp =
       appChooseCursor = neverShowCursor
     }
 
+--
+-- Initialize the game. I.e. create a stdGen
+initGame :: TVar Int -> IO Game
+initGame delay = do
+  gen <- Random.newStdGen
+  speed <- readTVarIO delay
+  return $ Game {pause = False, gameDone = False, delay = delay, game = initialTetris {gen = gen, speed = speed}}
+
+--
+-- Main
 startApp :: IO Game
 startApp = do
   eventChannel <- newBChan 10
@@ -164,16 +174,10 @@ startApp = do
 
   customMain initialVty buildVty (Just eventChannel) theApp state
 
+--
+-- sleap thread
 sleepApp :: BChan TetrisEvent -> TVar Int -> IO ()
 sleepApp chan delay = forever $ do
   writeBChan chan TetrisEvent
   d <- readTVarIO delay
   threadDelay d
-
---
--- Initialize the game. I.e. create a stdGen
-initGame :: TVar Int -> IO Game
-initGame delay = do
-  gen <- Random.newStdGen
-  speed <- readTVarIO delay
-  return $ Game {pause = False, gameDone = False, delay = delay, game = initialTetris {gen = gen, speed = speed}}
