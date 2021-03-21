@@ -1,13 +1,16 @@
 cradle:
-  stack:
-    - path: "./src"
-      component: "brickDemo:lib"
+  cabal:
+    - path: "src"
+      component: "lib:brickDemo"
 
-    - path: "./app/Main.hs"
+    - path: "./Main.hs"
       component: "brickDemo:exe:brickDemo-exe"
 
-    - path: "./app/Paths_brickDemo.hs"
+    - path: "./hs-source-dirs:.hs"
       component: "brickDemo:exe:brickDemo-exe"
 
-    - path: "./test"
+    - path: "./app.hs"
+      component: "brickDemo:exe:brickDemo-exe"
+
+    - path: "test"
       component: "brickDemo:test:brickDemo-test"
